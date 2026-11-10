@@ -51,6 +51,12 @@ node $D click 1 /testing/my-feedback '.ffb-composer textarea' 'type=One more thi
 FFB_PHONE=1 FFB_DARK=1 node $D shot 1 /testing/my-feedback phone-dark.png
 node $D eval 1 /testing/my-feedback "new Promise(r => setTimeout(() => r(!!window.ffbMotionStarted), 1500))"  # anime.js loaded?
 
+# Screenshots with a few weeks of data (fictional "Brightline" app, 10 users, 31 posts):
+# FFB_DEMO=1 on both setup and serve. `art/` in the repo was captured this way at 1440x900, 2x.
+FFB_DEMO=1 php .claude/skills/run-filament-feedback/server.php setup demo
+FFB_DEMO=1 php -S 127.0.0.1:8123 -t vendor/orchestra/testbench-core/laravel/public .claude/skills/run-filament-feedback/server.php
+# art/listing.jpg (2560x1440, Filament plugin listing) is art/listing.html rendered at 2560x1440.
+
 # 4. Stop
 pkill -f "php -S 127.0.0.1:8123"
 ```

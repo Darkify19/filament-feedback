@@ -147,6 +147,8 @@ td code { white-space: nowrap; }
 .flow { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin: 0 0 1.2rem; font-size: 0.92rem; }
 .flow span:not(.arr) { border: 1px solid var(--rule); border-radius: 6px; padding: 0.15rem 0.55rem; background: var(--bg-soft); }
 .flow .arr { color: var(--fg-faint); }
+.shot { margin: 0 0 1.5rem; }
+.shot img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 10px; }
 footer { margin-top: 4.5rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); font-size: 0.86rem; color: var(--fg-faint); }
 </style>
 </head>
@@ -207,6 +209,11 @@ release landed.</p>
   <span class="pill">Filament 3.3 · 4 · 5</span> <span class="pill">PHP 8.2+</span> <span class="pill">No build step</span><br>
   <a href="https://github.com/Darkify19/filament-feedback">Source on GitHub</a> · MIT licence · pre-release
 </p>
+
+<figure class="shot"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/inbox-dark.png">
+  <img src="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/inbox-light.png" alt="The Feedback inbox: stats, the mood board per module, and the table of posts" width="1440" height="900">
+</picture></figure>
 
 <h2 id="overview">Overview <a class="anchor" href="#overview">#</a></h2>
 
@@ -301,6 +308,11 @@ $panel-&gt;plugin(
 <p>The button shows for signed-in users on every page of its panel. The sheet opens above it (a bottom sheet
 on phones) and asks for three things:</p>
 
+<figure class="shot"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/sheet-dark.png">
+  <img src="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/sheet-light.png" alt="The Feedback sheet: kind boxes, the page’s module picked, a mood and a message with a # suggestion" width="1440" height="900" loading="lazy">
+</picture></figure>
+
 <h3>Kind</h3>
 <div class="tw"><table>
   <thead><tr><th>Kind</th><th>Stored as</th><th>Asks for</th></tr></thead>
@@ -336,6 +348,11 @@ a time. A thread shows:</p>
   <li>A timeline of the status: Sent, then each change. A post set back to New reads as <em>Reopened</em>.</li>
   <li>Once a post is Done, a <strong>Did this fix it?</strong> check. "Still broken" reopens it for the team.</li>
 </ul>
+<figure class="shot"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/my-feedback-dark.png">
+  <img src="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/my-feedback-light.png" alt="My feedback: a list of the author’s posts and one open thread with replies and reactions" width="1440" height="900" loading="lazy">
+</picture></figure>
+
 <p>Threads with a team reply the author hasn't opened get an unread badge in the navigation.</p>
 
 <h2 id="inbox">The inbox <a class="anchor" href="#inbox">#</a></h2>
@@ -348,6 +365,11 @@ with a badge for New posts. It holds:</p>
   <li>A table of every post with filters for kind, status, mood and module. Opening a row shows the thread,
       where the team replies and sets the status.</li>
 </ul>
+
+<figure class="shot"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/inbox-thread-dark.png">
+  <img src="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/inbox-thread-light.png" alt="A thread open in the inbox, with replies, the status timeline and the status buttons" width="1440" height="900" loading="lazy">
+</picture></figure>
 
 <p>Statuses move a post along:</p>
 <div class="flow"><span>New</span><span class="arr">→</span><span>Seen</span><span class="arr">→</span><span>Planned</span><span class="arr">→</span><span>Done</span></div>

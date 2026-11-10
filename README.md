@@ -6,6 +6,20 @@ write. Their threads live on a **My feedback** page, with the team's replies, re
 a Sent → Seen → Planned → Done timeline. The team reads every post in an inbox, replies and
 sets a status. A board shows the mood for each module, so you can see how a release landed.
 
+<div class="filament-hidden">
+
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/carljanzell/filament-feedback.svg?style=flat-square)](https://packagist.org/packages/carljanzell/filament-feedback)
+[![Total Downloads](https://img.shields.io/packagist/dt/carljanzell/filament-feedback.svg?style=flat-square)](https://packagist.org/packages/carljanzell/filament-feedback)
+[![Tests](https://img.shields.io/github/actions/workflow/status/Darkify19/filament-feedback/ci.yaml?branch=main&label=tests&style=flat-square)](https://github.com/Darkify19/filament-feedback/actions/workflows/ci.yaml)
+[![License](https://img.shields.io/packagist/l/carljanzell/filament-feedback.svg?style=flat-square)](https://github.com/Darkify19/filament-feedback/blob/main/LICENSE)
+
+</div>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/inbox-dark.png">
+  <img alt="The Feedback inbox: stats for posts, first-reply time, fixes and mood, and a board of mood per module" src="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/inbox-light.png">
+</picture>
+
 - Works on **Filament 3.3, 4 and 5** from one codebase.
 - Four kinds of post: feedback, a question, a problem, or a note for the developers (which
   can be limited to the dev team and ping its own Chat space).
@@ -23,6 +37,23 @@ sets a status. A board shows the mood for each module, so you can see how a rele
 Full documentation: **https://darkify19.github.io/filament-feedback/**
 
 > Pre-release. See [ROADMAP.md](ROADMAP.md) for what's in, what's next and what 1.0 means.
+
+## Screenshots
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/sheet-dark.png">
+  <img alt="The Feedback sheet: kind, modules with # mentions, mood and message" src="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/sheet-light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/my-feedback-dark.png">
+  <img alt="My feedback: an author's threads with the team's replies, reactions and the status timeline" src="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/my-feedback-light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/inbox-thread-dark.png">
+  <img alt="A thread in the inbox, with the team's replies and the status buttons" src="https://raw.githubusercontent.com/Darkify19/filament-feedback/main/art/inbox-thread-light.png">
+</picture>
 
 ## Install
 

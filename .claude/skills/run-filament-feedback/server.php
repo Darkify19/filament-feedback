@@ -37,7 +37,22 @@ class RunPanelProvider extends TestPanelProvider
 {
     public function panel(Filament\Panel $panel): Filament\Panel
     {
-        return parent::panel($panel)
+        $panel = parent::panel($panel);
+
+        // FFB_DEMO=1: a fictional app's modules, for screenshots with `setup demo`.
+        if (getenv('FFB_DEMO')) {
+            $panel->brandName('Brightline');
+            $panel->getPlugin('feedback')->modules([
+                'orders' => ['label' => 'Orders', 'icon' => 'heroicon-o-shopping-bag'],
+                'invoices' => ['label' => 'Invoices', 'icon' => 'heroicon-o-document-text'],
+                'customers' => ['label' => 'Customers', 'icon' => 'heroicon-o-users'],
+                'reports' => ['label' => 'Reports', 'icon' => 'heroicon-o-chart-bar'],
+                'leave' => 'Leave',
+                'design' => ['label' => 'Overall look', 'icon' => 'heroicon-o-swatch'],
+            ]);
+        }
+
+        return $panel
             ->pages([Filament\Pages\Dashboard::class]) // staff can't open the inbox; without a page they loop on /testing
             ->middleware([
                 Illuminate\Cookie\Middleware\EncryptCookies::class,
@@ -97,7 +112,7 @@ Route::middleware('web')->get('/_as/{id}', function (string $id) {
 
 if (PHP_SAPI === 'cli') {
     if (($argv[1] ?? null) !== 'setup') {
-        exit("usage: php server.php setup\n");
+        exit("usage: php server.php setup [demo]\n");
     }
 
     @unlink($db);
@@ -129,6 +144,10 @@ if (PHP_SAPI === 'cli') {
     User::create(['name' => 'Ana', 'email' => 'ana@example.com', 'password' => 'x']);
     User::create(['name' => 'Ben', 'email' => 'ben@example.com', 'password' => 'x', 'is_admin' => true]);
     echo "DB ready at {$db} (1 = Ana, staff; 2 = Ben, triager)\n";
+
+    if (($argv[2] ?? null) === 'demo') {
+        require __DIR__.'/demo.php';
+    }
 
     return;
 }
