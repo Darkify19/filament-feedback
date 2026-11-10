@@ -8,6 +8,8 @@ sets a status. A board shows the mood for each module, so you can see how a rele
 
 - Works on **Filament 3.3, 4 and 5** from one codebase.
 - Private by default: a post is seen by its author and the people you let triage.
+- Modules stay compact: the page's module is pre-picked, the rest sit behind a search, and
+  typing `#DTR` (or `#BreakRoom`, `#dtr`, …) in the message tags one with autocomplete.
 - Module chips use your app's own navigation icons.
 - Reactions (Thanks, Same here, Seen, Fixed) and a "Did this fix it?" check once a post is Done.
 - Motion by anime.js, loaded only when the viewer allows motion.

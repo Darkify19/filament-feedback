@@ -537,3 +537,187 @@
         display: none;
     }
 }
+
+/* Module picker in the quick sheet: chips for what's picked, a searchable list behind "Add" */
+.ffb-picker {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.ffb-picker-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.ffb-picker-chip,
+.ffb-picker-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2rem;
+    padding: 0.25rem 0.375rem 0.25rem 0.625rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.ffb-picker-chip {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.ffb-picker-add {
+    padding-inline-end: 0.625rem;
+    border: 1px dashed color-mix(in srgb, currentColor 30%, transparent);
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.ffb-picker-add:hover {
+    background: color-mix(in srgb, currentColor 5%, transparent);
+}
+
+.ffb-picker-remove {
+    display: inline-grid;
+    place-items: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 0;
+    border-radius: 9999px;
+    background: none;
+    color: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+}
+
+.ffb-picker-remove:hover {
+    opacity: 1;
+    background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.ffb-picker-icon {
+    display: inline-flex;
+}
+
+.ffb-picker-icon:empty {
+    display: none;
+}
+
+.ffb-picker-hint {
+    font-size: 0.8125rem;
+    opacity: 0.65;
+}
+
+.ffb-picker-hint kbd,
+.ffb-mention-text {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+}
+
+.ffb-picker-panel {
+    display: grid;
+    gap: 0.375rem;
+    padding: 0.5rem;
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    border-radius: 0.75rem;
+}
+
+.ffb-picker-panel[x-cloak],
+.ffb-mention-list[x-cloak] {
+    display: none;
+}
+
+.ffb-picker-search {
+    width: 100%;
+    padding: 0.4rem 0.625rem;
+    border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+    border-radius: 0.5rem;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.875rem;
+}
+
+.ffb-picker-search:focus {
+    outline: 2px solid var(--ffb-accent);
+    outline-offset: -1px;
+}
+
+.ffb-picker-options {
+    display: grid;
+    max-height: 13.5rem;
+    overflow-y: auto;
+}
+
+.ffb-picker-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.45rem 0.5rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 0.875rem;
+    text-align: start;
+    cursor: pointer;
+}
+
+.ffb-picker-option:hover,
+.ffb-mention-list .ffb-picker-option[aria-selected="true"] {
+    background: color-mix(in srgb, currentColor 7%, transparent);
+}
+
+.ffb-picker-check {
+    margin-inline-start: auto;
+    visibility: hidden;
+    color: var(--ffb-accent);
+}
+
+.ffb-picker-option[aria-selected="true"] .ffb-picker-check {
+    visibility: visible;
+}
+
+.ffb-picker-empty {
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+    opacity: 0.65;
+}
+
+/* # suggestions, under the message box */
+.ffb-mention-list {
+    position: fixed;
+    z-index: 60;
+    display: grid;
+    min-width: 14rem;
+    padding: 0.25rem;
+    border-radius: 0.75rem;
+    background: #fff;
+    color: #18181b;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.dark .ffb-mention-list {
+    background: #27272a;
+    color: #fafafa;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.ffb-mention-text {
+    margin-inline-start: auto;
+    opacity: 0.55;
+}
+
+/* #Module inside a message */
+.ffb-mention {
+    padding: 0 0.25rem;
+    border-radius: 0.25rem;
+    background: color-mix(in srgb, var(--ffb-accent, currentColor) 15%, transparent);
+    font-weight: 600;
+}

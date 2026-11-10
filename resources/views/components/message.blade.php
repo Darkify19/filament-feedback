@@ -7,6 +7,18 @@
     // People react to the other side's messages, not their own.
     $canReact = $reactable !== null && $viewer !== null && ! $reactable->isWrittenBy($viewer);
     $summary = $reactable?->reactionSummary($viewer) ?? [];
+
+    // #Module mentions the current panel knows read as tags. Applied after escaping, so only
+    // the plugin's own <span> is markup; (?<![\w&]) skips entities like &#039;.
+    $panel = \Filament\Facades\Filament::getCurrentPanel();
+    $tokens = $panel?->hasPlugin('feedback') ? $panel->getPlugin('feedback')->mentionTokens() : [];
+    $html = preg_replace_callback(
+        '/(?<![\w&])#([\pL\pN][\pL\pN_-]*)/u',
+        fn (array $match): string => isset($tokens[\Illuminate\Support\Str::lower(preg_replace('/[^\pL\pN]+/u', '', $match[1]))])
+            ? '<span class="ffb-mention">'.$match[0].'</span>'
+            : $match[0],
+        e($body),
+    );
 @endphp
 
 <article
@@ -17,7 +29,7 @@
         <span class="ffb-message-name">{{ $name }}</span>
         <time datetime="{{ $time->toIso8601String() }}" title="{{ $time->toDayDateTimeString() }}">{{ $time->diffForHumans() }}</time>
     </header>
-    <div class="ffb-message-body">{!! nl2br(e($body)) !!}</div>
+    <div class="ffb-message-body">{!! nl2br($html) !!}</div>
 
     @if ($reactable && ($canReact || collect($summary)->sum('count') > 0))
         <div class="ffb-reactions" x-data="{ more: false }">

@@ -57,6 +57,17 @@ it('asks for a module and a mood on feedback, but not on a question', function (
     expect(FeedbackPost::sole()->mood)->toBeNull();
 });
 
+it('tags modules mentioned with # in the message, and counts them as picked', function (): void {
+    signIn(person());
+
+    Livewire::test(FeedbackLauncher::class, ['panel' => 'testing'])
+        ->callAction('feedback', data: ['kind' => 'feedback', 'modules' => [], 'mood' => '0', 'body' => 'Filing #leave from the #Dtr page. Not #payroll, and &#039; is no tag.'])
+        ->assertHasNoActionErrors();
+
+    expect(FeedbackPost::sole()->modules)->toBe(['leave', 'dtr'])
+        ->and(FilamentFeedbackPlugin::mentionText('Break Room'))->toBe('BreakRoom');
+});
+
 it('lets the author reply only on their own posts, and reopens the post', function (): void {
     $ana = person();
     $ben = person('Ben');

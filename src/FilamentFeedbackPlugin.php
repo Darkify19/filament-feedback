@@ -138,6 +138,52 @@ class FilamentFeedbackPlugin implements Plugin
     }
 
     /**
+     * Module slugs named with # in a message: `#DTR`, `#dtr`, `#BreakRoom` and `#break-room` all
+     * name the same module (slug or label, case and punctuation ignored).
+     *
+     * @return list<string>
+     */
+    public function modulesMentionedIn(?string $body): array
+    {
+        preg_match_all('/(?<![\w&])#([\pL\pN][\pL\pN_-]*)/u', (string) $body, $matches);
+
+        $tokens = $this->mentionTokens();
+
+        return array_values(array_unique(array_filter(array_map(
+            fn (string $token): ?string => $tokens[static::mentionKey($token)] ?? null,
+            $matches[1],
+        ))));
+    }
+
+    /**
+     * @return array<string, string> normalized slug or label => slug
+     */
+    public function mentionTokens(): array
+    {
+        $tokens = [];
+
+        foreach ($this->getModules() as $slug => $label) {
+            $tokens[static::mentionKey($label)] ??= $slug;
+            $tokens[static::mentionKey($slug)] = $slug;
+        }
+
+        return $tokens;
+    }
+
+    /**
+     * What a module is written as after #, e.g. "Break Room" → "BreakRoom".
+     */
+    public static function mentionText(string $label): string
+    {
+        return Str::studly(preg_replace('/[^\pL\pN]+/u', ' ', $label));
+    }
+
+    protected static function mentionKey(string $text): string
+    {
+        return Str::lower(preg_replace('/[^\pL\pN]+/u', '', $text));
+    }
+
+    /**
      * slug => icon from the panel's own pages and resources, read off its GET routes (no
      * parameters) so it works the same on Filament 3, 4 and 5. The first page per module wins.
      *

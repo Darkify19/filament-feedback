@@ -15,11 +15,13 @@ use Filament\Actions\Contracts\HasActions;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Forms\Components\ViewField;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Blade;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -101,14 +103,15 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
                 ->inline()
                 ->live()
                 ->required(),
-            ToggleButtons::make('modules')
+            // Compact on purpose: the page's module pre-picked, the rest behind a search, and
+            // `#Module` in the message adds one too. A wall of chips is too much past a handful.
+            ViewField::make('modules')
                 ->label('Which parts of the app?')
-                ->options($modules)
-                ->icons($this->plugin()->getModuleIcons())
-                ->multiple()
-                ->inline()
+                ->view('filament-feedback::module-picker')
+                ->viewData(['options' => $this->pickerOptions()])
                 ->visible($modules !== [])
-                ->required(fn ($get): bool => FeedbackKind::fromState($get('kind')) === FeedbackKind::Feedback),
+                ->required(fn ($get): bool => FeedbackKind::fromState($get('kind')) === FeedbackKind::Feedback
+                    && $this->plugin()->modulesMentionedIn($get('body')) === []),
             ToggleButtons::make('mood')
                 ->label('How do you feel about it?')
                 ->options(FeedbackMood::class)
@@ -116,6 +119,7 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
                 ->visible(fn ($get): bool => FeedbackKind::fromState($get('kind')) === FeedbackKind::Feedback)
                 ->required(fn ($get): bool => FeedbackKind::fromState($get('kind')) === FeedbackKind::Feedback),
             Textarea::make('body')
+                ->placeholder($modules !== [] ? 'Type # to tag a part of the app' : null)
                 ->label(fn ($get): string => match (FeedbackKind::fromState($get('kind'))) {
                     FeedbackKind::Question => 'Your question',
                     FeedbackKind::Problem => 'What went wrong, and what were you doing?',
@@ -142,7 +146,10 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
             'kind' => $kind,
             'mood' => $kind === FeedbackKind::Feedback ? $mood : null,
             // Only slugs the app offers, whatever the request claims.
-            'modules' => array_values(array_intersect($data['modules'] ?? [], array_keys($plugin->getModules()))) ?: null,
+            'modules' => array_values(array_unique([
+                ...array_intersect((array) ($data['modules'] ?? []), array_keys($plugin->getModules())),
+                ...$plugin->modulesMentionedIn($data['body']),
+            ])) ?: null,
             'body' => trim($data['body']),
             'context' => array_filter([
                 'url' => $this->pageUrl,
@@ -169,6 +176,28 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
             ->success()
             ->actions($url ? [Compat::notificationAction('follow')->label('Follow it in My feedback')->url($url)] : [])
             ->send();
+    }
+
+    /**
+     * The picker's list: label, the text it's mentioned as, and its icon pre-rendered.
+     *
+     * @return list<array{slug: string, label: string, mention: string, icon: string}>
+     */
+    protected function pickerOptions(): array
+    {
+        $icons = $this->plugin()->getModuleIcons();
+
+        return collect($this->plugin()->getModules())
+            ->map(fn (string $label, string $slug): array => [
+                'slug' => $slug,
+                'label' => $label,
+                'mention' => FilamentFeedbackPlugin::mentionText($label),
+                'icon' => isset($icons[$slug])
+                    ? Blade::render('<x-filament::icon :icon="$icon" class="ffb-icon" />', ['icon' => $icons[$slug]])
+                    : '',
+            ])
+            ->values()
+            ->all();
     }
 
     public function unreadCount(): int

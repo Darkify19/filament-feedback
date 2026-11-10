@@ -3,14 +3,15 @@
  *
  * Optional polish: the launcher imports this only when the viewer allows motion, and every
  * screen works the same, unanimated, if it never loads. Five moments, nothing else:
- * the sheet's options arrive, a pick pops, new messages settle in, a reaction pops, and the
+ * the sheet's options arrive, a pick pops, new messages and picked modules settle in, a
+ * reaction pops, and the
  * unread badge pulses once. Inline styles are removed when each animation ends, so nothing
  * is left fighting Filament's own transitions.
  */
 
 const SHEET = '.ffb-sheet'
-const PICKS = `${SHEET} label.fi-btn, ${SHEET} .fi-fo-toggle-buttons label, .ffb-react, .ffb-item`
-const ARRIVING = '.ffb-message, .ffb-timeline li, .ffb-fix, .ffb-notice'
+const PICKS = `${SHEET} label.fi-btn, ${SHEET} .fi-fo-toggle-buttons label, .ffb-picker-option, .ffb-picker-add, .ffb-react, .ffb-item`
+const ARRIVING = '.ffb-message, .ffb-timeline li, .ffb-fix, .ffb-notice, .ffb-picker-chip'
 
 export default ({ animate, stagger, spring }) => {
     const gentle = spring({ bounce: 0.15, duration: 520 })
