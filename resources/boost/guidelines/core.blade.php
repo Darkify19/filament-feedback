@@ -6,7 +6,6 @@ In-app feedback for Filament 3.3, 4 and 5 panels. A floating **Feedback** button
 
 @verbatim
 <code-snippet name="Install" lang="bash">
-composer config repositories.filament-feedback vcs https://github.com/Darkify19/filament-feedback
 composer require carljanzell/filament-feedback:^0.4
 php artisan migrate
 php artisan filament:assets

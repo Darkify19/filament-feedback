@@ -57,13 +57,13 @@ Don't relitigate these in a new session. Change them only on purpose.
 - On a Livewire update request no panel is "current". Resolve the user through
   `Filament::getPanel($this->panel)->auth()`.
 
-## Shipping to an app (until it's on Packagist)
+## Shipping to an app
 
 A path repository (`"url": "../filament-feedback"`) works only on a laptop that has the
 sibling folder. Before an app deploys, the package must be on GitHub and the app must
 require a tag, through VCS or Packagist. Never push an app's `composer.json` with a path repo.
 
-Until Packagist, an app adds the GitHub repo and requires the tag:
+On Packagist since 2026-11-10, so apps just `composer require carljanzell/filament-feedback:^0.4`. Apps that added the VCS repository earlier can drop it:
 
 ```json
 "repositories": [{ "type": "vcs", "url": "https://github.com/Darkify19/filament-feedback" }],
@@ -114,7 +114,7 @@ To keep editing the package live on a laptop, use a local `composer.json` overri
 | Click a board cell to filter the table | Module + mood |
 | Notify triagers on a new post (`->notifyTriagers(fn (): iterable)`) | Today only the event and the Chat ping fire |
 | Translations (`lang/en`) | All copy currently inline |
-| Publish to Packagist, README screenshots | Screenshots, docs site and listing image ✅ (`art/`, `docs/`, 2026-11-10). Packagist ⬜ |
+| Publish to Packagist, README screenshots | Screenshots, docs site and listing image ✅ (`art/`, `docs/`, 2026-11-10). Packagist ✅ (auto-updated); Filament directory listing submitted, pending approval |
 
 ## v0.3 — Teammates' apps
 

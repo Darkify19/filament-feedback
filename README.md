@@ -57,10 +57,7 @@ Full documentation: **https://darkify19.github.io/filament-feedback/**
 
 ## Install
 
-Not on Packagist yet: add the GitHub repository first.
-
 ```bash
-composer config repositories.filament-feedback vcs https://github.com/Darkify19/filament-feedback
 composer require carljanzell/filament-feedback:^0.4
 php artisan migrate
 php artisan filament:assets
