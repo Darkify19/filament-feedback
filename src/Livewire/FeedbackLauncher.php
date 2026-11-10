@@ -14,7 +14,6 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Components\ViewField;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -65,7 +64,7 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
             // CSS anchors this window above the button on wide screens and makes it a bottom sheet on phones.
             ->extraModalWindowAttributes(['class' => 'ffb-sheet'])
             ->modalWidth('md')
-            ->modalIcon('heroicon-o-chat-bubble-left-right')
+            // No modal icon: on Filament 3 it indents the whole form, which squeezes the boxes on phones.
             ->modalHeading('Feedback')
             ->modalDescription('About this page. Only you and the team who reads feedback see it.')
             ->fillForm(fn (): array => [
@@ -97,11 +96,13 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
         $modules = $this->plugin()->getModules();
 
         return [
-            ToggleButtons::make('kind')
+            // Four big boxes, not a row of buttons: each says what it's for. Live, so the
+            // fields below follow the choice.
+            ViewField::make('kind')
                 ->hiddenLabel()
-                ->options(FeedbackKind::class)
-                ->inline()
-                ->live()
+                ->view('filament-feedback::kind-picker')
+                ->viewData(['kinds' => $this->plugin()->getKinds()])
+                ->in(array_map(fn (FeedbackKind $kind): string => $kind->value, $this->plugin()->getKinds()))
                 ->required(),
             // Compact on purpose: the page's module pre-picked, the rest behind a search, and
             // `#Module` in the message adds one too. A wall of chips is too much past a handful.
@@ -110,19 +111,20 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
                 ->view('filament-feedback::module-picker')
                 ->viewData(['options' => $this->pickerOptions()])
                 ->visible($modules !== [])
-                ->required(fn ($get): bool => FeedbackKind::fromState($get('kind')) === FeedbackKind::Feedback
+                ->required(fn ($get): bool => (FeedbackKind::fromState($get('kind'))?->isScored() ?? false)
                     && $this->plugin()->modulesMentionedIn($get('body')) === []),
-            ToggleButtons::make('mood')
+            ViewField::make('mood')
                 ->label('How do you feel about it?')
-                ->options(FeedbackMood::class)
-                ->inline()
-                ->visible(fn ($get): bool => FeedbackKind::fromState($get('kind')) === FeedbackKind::Feedback)
-                ->required(fn ($get): bool => FeedbackKind::fromState($get('kind')) === FeedbackKind::Feedback),
+                ->view('filament-feedback::mood-picker')
+                ->in(array_map(fn (FeedbackMood $mood): int => $mood->value, FeedbackMood::cases()))
+                ->visible(fn ($get): bool => FeedbackKind::fromState($get('kind'))?->isScored() ?? false)
+                ->required(fn ($get): bool => FeedbackKind::fromState($get('kind'))?->isScored() ?? false),
             Textarea::make('body')
                 ->placeholder($modules !== [] ? 'Type # to tag a part of the app' : null)
                 ->label(fn ($get): string => match (FeedbackKind::fromState($get('kind'))) {
                     FeedbackKind::Question => 'Your question',
                     FeedbackKind::Problem => 'What went wrong, and what were you doing?',
+                    FeedbackKind::Developers => 'What should the developers know?',
                     default => 'What would you like us to know?',
                 })
                 ->rows(4)
@@ -144,7 +146,7 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
         $post = new FeedbackPost([
             'panel' => $this->panel,
             'kind' => $kind,
-            'mood' => $kind === FeedbackKind::Feedback ? $mood : null,
+            'mood' => $kind->isScored() ? $mood : null,
             // Only slugs the app offers, whatever the request claims.
             'modules' => array_values(array_unique([
                 ...array_intersect((array) ($data['modules'] ?? []), array_keys($plugin->getModules())),
@@ -164,7 +166,7 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
 
         FeedbackPosted::dispatch($post);
 
-        if ($webhook = $plugin->getChatWebhook()) {
+        if ($webhook = $plugin->getChatWebhook($kind)) {
             GoogleChatPing::send($webhook, $post, $plugin->getModules());
         }
 

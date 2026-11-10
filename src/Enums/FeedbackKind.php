@@ -11,6 +11,7 @@ enum FeedbackKind: string implements HasColor, HasIcon, HasLabel
     case Feedback = 'feedback';
     case Question = 'question';
     case Problem = 'problem';
+    case Developers = 'developers';
 
     public function getLabel(): ?string
     {
@@ -18,7 +19,29 @@ enum FeedbackKind: string implements HasColor, HasIcon, HasLabel
             self::Feedback => 'Share feedback',
             self::Question => 'Ask a question',
             self::Problem => 'Report a problem',
+            self::Developers => 'For the developers',
         };
+    }
+
+    /**
+     * One line under the label in the sheet, so people pick the right box.
+     */
+    public function getDescription(): string
+    {
+        return match ($this) {
+            self::Feedback => 'What works, what doesn\'t',
+            self::Question => 'How do I…? Where is…?',
+            self::Problem => 'Something broke or looks wrong',
+            self::Developers => 'Ideas and notes for the dev team',
+        };
+    }
+
+    /**
+     * Only feedback is scored, so only feedback needs a mood and a module.
+     */
+    public function isScored(): bool
+    {
+        return $this === self::Feedback;
     }
 
     public function getColor(): string
@@ -27,6 +50,7 @@ enum FeedbackKind: string implements HasColor, HasIcon, HasLabel
             self::Feedback => 'primary',
             self::Question => 'info',
             self::Problem => 'danger',
+            self::Developers => 'gray',
         };
     }
 
@@ -36,6 +60,7 @@ enum FeedbackKind: string implements HasColor, HasIcon, HasLabel
             self::Feedback => 'heroicon-o-chat-bubble-left-ellipsis',
             self::Question => 'heroicon-o-question-mark-circle',
             self::Problem => 'heroicon-o-bug-ant',
+            self::Developers => 'heroicon-o-code-bracket',
         };
     }
 
@@ -56,6 +81,7 @@ enum FeedbackKind: string implements HasColor, HasIcon, HasLabel
             self::Feedback => 'Feedback',
             self::Question => 'Question',
             self::Problem => 'Problem',
+            self::Developers => 'For developers',
         };
     }
 }

@@ -55,12 +55,12 @@ class FeedbackStats extends StatsOverviewWidget
 
     protected function volume(Carbon $since): Stat
     {
-        $perDay = FeedbackPost::query()->where('created_at', '>=', now()->subDays(13)->startOfDay())->pluck('created_at')
+        $perDay = FeedbackPost::query()->visibleToTeam()->where('created_at', '>=', now()->subDays(13)->startOfDay())->pluck('created_at')
             ->countBy(fn (Carbon $at): string => $at->toDateString());
-        $open = FeedbackPost::query()->whereIn('status', [FeedbackStatus::New, FeedbackStatus::Seen, FeedbackStatus::Planned])->count();
-        $new = FeedbackPost::query()->where('status', FeedbackStatus::New)->count();
+        $open = FeedbackPost::query()->visibleToTeam()->whereIn('status', [FeedbackStatus::New, FeedbackStatus::Seen, FeedbackStatus::Planned])->count();
+        $new = FeedbackPost::query()->visibleToTeam()->where('status', FeedbackStatus::New)->count();
 
-        return Stat::make('Posts, last '.static::DAYS.' days', FeedbackPost::query()->where('created_at', '>=', $since)->count())
+        return Stat::make('Posts, last '.static::DAYS.' days', FeedbackPost::query()->visibleToTeam()->where('created_at', '>=', $since)->count())
             ->description("{$open} open · {$new} waiting for a first look")
             ->descriptionIcon('heroicon-m-inbox')
             ->chart(collect(range(13, 0))->map(fn (int $daysAgo): int => $perDay[now()->subDays($daysAgo)->toDateString()] ?? 0)->all())
@@ -82,7 +82,7 @@ class FeedbackStats extends StatsOverviewWidget
             ->sort()
             ->values();
 
-        $total = FeedbackPost::query()->where('created_at', '>=', $since)->count();
+        $total = FeedbackPost::query()->visibleToTeam()->where('created_at', '>=', $since)->count();
 
         return Stat::make('First reply, median', $hours->isEmpty() ? '—' : static::duration($hours->median()))
             ->description($hours->count().' of '.$total.' answered')
@@ -92,9 +92,9 @@ class FeedbackStats extends StatsOverviewWidget
 
     protected function done(Carbon $since): Stat
     {
-        $done = FeedbackPost::query()->where('status', FeedbackStatus::Done)->where('updated_at', '>=', $since);
+        $done = FeedbackPost::query()->visibleToTeam()->where('status', FeedbackStatus::Done)->where('updated_at', '>=', $since);
         $confirmed = (clone $done)->where('fix_confirmed', true)->count();
-        $notFixed = FeedbackPost::query()->where('fix_confirmed', false)->where('updated_at', '>=', $since)->count();
+        $notFixed = FeedbackPost::query()->visibleToTeam()->where('fix_confirmed', false)->where('updated_at', '>=', $since)->count();
 
         return Stat::make('Done, last '.static::DAYS.' days', $done->count())
             ->description("{$confirmed} confirmed fixed · {$notFixed} not fixed")

@@ -114,6 +114,21 @@ class FeedbackPost extends Model
     }
 
     /**
+     * What this triager may read: everything, minus posts for the developers unless the
+     * plugin lets them read those (see `developerPosts()`).
+     *
+     * @param  Builder<FeedbackPost>  $query
+     */
+    public function scopeVisibleToTeam(Builder $query): void
+    {
+        $panel = Filament::getCurrentPanel();
+
+        if ($panel?->hasPlugin('feedback') && ! $panel->getPlugin('feedback')->canReadDeveloperPosts()) {
+            $query->where('kind', '!=', FeedbackKind::Developers);
+        }
+    }
+
+    /**
      * Posts with a team reply the author hasn't opened the panel to see yet.
      *
      * @param  Builder<FeedbackPost>  $query

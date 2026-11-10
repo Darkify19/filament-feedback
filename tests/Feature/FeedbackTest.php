@@ -180,6 +180,32 @@ it('toggles reactions on the other side\'s messages only', function (): void {
     expect($post->fresh()->load('reactions')->reactionSummary($ana)[2])->toMatchArray(['count' => 1, 'mine' => false]);
 });
 
+it('sends a note to the developers without a module or mood, and keeps it from other triagers when asked', function (): void {
+    $ana = signIn(person());
+
+    Livewire::test(FeedbackLauncher::class, ['panel' => 'testing'])
+        ->callAction('feedback', data: ['kind' => 'developers', 'modules' => [], 'mood' => null, 'body' => 'The export could stream instead of buffering.'])
+        ->assertHasNoActionErrors();
+
+    $note = FeedbackPost::sole();
+    expect($note->kind->value)->toBe('developers')->and($note->mood)->toBeNull();
+
+    $plugin = FilamentFeedbackPlugin::get()->chatWebhook('https://chat.example/hr')
+        ->developerPosts(canRead: fn (): bool => auth()->user()?->name === 'Dev', chatWebhook: 'https://chat.example/dev');
+
+    expect($plugin->getChatWebhook($note->kind))->toBe('https://chat.example/dev')
+        ->and($plugin->getChatWebhook())->toBe('https://chat.example/hr');
+
+    signIn(person('Hr', admin: true));
+    Livewire::test(FeedbackInbox::class)->assertCanNotSeeTableRecords([$note]);
+
+    signIn(person('Dev', admin: true));
+    Livewire::test(FeedbackInbox::class)->assertCanSeeTableRecords([$note]);
+
+    $plugin->developerPosts(false);
+    expect(array_map(fn ($kind) => $kind->value, $plugin->getKinds()))->toBe(['feedback', 'question', 'problem']);
+});
+
 it('lets the team unsend its own replies, and authors only when allowed', function (): void {
     $ana = person();
     $hr = person('Hr', admin: true);

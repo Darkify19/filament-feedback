@@ -10,7 +10,7 @@
  */
 
 const SHEET = '.ffb-sheet'
-const PICKS = `${SHEET} label.fi-btn, ${SHEET} .fi-fo-toggle-buttons label, .ffb-picker-option, .ffb-picker-add, .ffb-react, .ffb-item`
+const PICKS = `${SHEET} label.fi-btn, ${SHEET} .fi-fo-toggle-buttons label, .ffb-picker-option, .ffb-picker-add, .ffb-kind, .ffb-mood, .ffb-react, .ffb-item`
 // A list row that comes back (its chip was removed) eases in too.
 const ARRIVING = '.ffb-message, .ffb-timeline li, .ffb-fix, .ffb-notice, .ffb-picker-chip, .ffb-picker-options .ffb-picker-option'
 
@@ -75,7 +75,7 @@ export default ({ animate, stagger, spring }) => {
         onComplete: release(element, 'transform'),
     })
 
-    const sheetOptions = (root) => root.querySelectorAll(`${SHEET} .fi-fo-toggle-buttons label, ${SHEET} label.fi-btn`)
+    const sheetOptions = (root) => root.querySelectorAll(`${SHEET} .ffb-kind, ${SHEET} .ffb-mood, ${SHEET} .fi-fo-toggle-buttons label`)
 
     const start = () => {
         if (window.ffbMotionStarted) {
@@ -103,7 +103,7 @@ export default ({ animate, stagger, spring }) => {
             const target = event.target.closest(PICKS)
 
             if (target) {
-                pop(target.matches('.ffb-react') ? (target.querySelector('svg') ?? target) : target)
+                pop(target.matches('.ffb-react, .ffb-kind, .ffb-mood') ? (target.querySelector('svg') ?? target) : target)
             }
         })
 

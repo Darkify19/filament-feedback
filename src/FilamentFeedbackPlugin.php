@@ -3,6 +3,7 @@
 namespace CarlJanzell\FilamentFeedback;
 
 use BackedEnum;
+use CarlJanzell\FilamentFeedback\Enums\FeedbackKind;
 use CarlJanzell\FilamentFeedback\Pages\FeedbackInbox;
 use CarlJanzell\FilamentFeedback\Pages\MyFeedback;
 use Closure;
@@ -57,6 +58,12 @@ class FilamentFeedbackPlugin implements Plugin
     protected bool|Closure $teamCanUnsend = true;
 
     protected bool|Closure $authorsCanUnsend = false;
+
+    protected bool $hasDeveloperPosts = true;
+
+    protected bool|Closure|null $canReadDeveloperPosts = null;
+
+    protected ?string $developerChatWebhook = null;
 
     public static function make(): static
     {
@@ -323,9 +330,11 @@ class FilamentFeedbackPlugin implements Plugin
         return $this;
     }
 
-    public function getChatWebhook(): ?string
+    public function getChatWebhook(?FeedbackKind $kind = null): ?string
     {
-        return $this->chatWebhook;
+        return $kind === FeedbackKind::Developers && $this->developerChatWebhook
+            ? $this->developerChatWebhook
+            : $this->chatWebhook;
     }
 
     /**
@@ -366,6 +375,46 @@ class FilamentFeedbackPlugin implements Plugin
     public function authorsCanUnsend(): bool
     {
         return (bool) $this->evaluate($this->authorsCanUnsend);
+    }
+
+    /**
+     * The "For the developers" box in the sheet: messages meant for the dev team, not the
+     * people who handle feedback. `$canRead` limits who sees them in the inbox; by default,
+     * every triager. `$chatWebhook` pings the dev team's own Chat space instead of
+     * `chatWebhook()`. Turn the box off with `developerPosts(false)`.
+     */
+    public function developerPosts(bool $enabled = true, bool|Closure|null $canRead = null, ?string $chatWebhook = null): static
+    {
+        $this->hasDeveloperPosts = $enabled;
+        $this->canReadDeveloperPosts = $canRead;
+        $this->developerChatWebhook = filled($chatWebhook) ? $chatWebhook : null;
+
+        return $this;
+    }
+
+    public function hasDeveloperPosts(): bool
+    {
+        return $this->hasDeveloperPosts;
+    }
+
+    public function canReadDeveloperPosts(): bool
+    {
+        return $this->canReadDeveloperPosts === null
+            ? $this->isTriager()
+            : (bool) $this->evaluate($this->canReadDeveloperPosts);
+    }
+
+    /**
+     * The kinds offered in the sheet, in order.
+     *
+     * @return list<FeedbackKind>
+     */
+    public function getKinds(): array
+    {
+        return array_values(array_filter(
+            FeedbackKind::cases(),
+            fn (FeedbackKind $kind): bool => $kind !== FeedbackKind::Developers || $this->hasDeveloperPosts,
+        ));
     }
 
     public function navigationGroup(?string $group): static

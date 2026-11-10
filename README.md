@@ -7,6 +7,8 @@ a Sent → Seen → Planned → Done timeline. The team reads every post in an i
 sets a status. A board shows the mood for each module, so you can see how a release landed.
 
 - Works on **Filament 3.3, 4 and 5** from one codebase.
+- Four kinds of post: feedback, a question, a problem, or a note for the developers (which
+  can be limited to the dev team and ping its own Chat space).
 - Private by default: a post is seen by its author and the people you let triage.
 - Modules stay compact: the page's module is pre-picked, the rest sit behind a search, and
   typing `#DTR` (or `#BreakRoom`, `#dtr`, …) in the message tags one with autocomplete.
@@ -75,6 +77,7 @@ A one-panel app keeps both on (the default) and only sets `canTriage()`.
 | `inbox(bool)` | `true` | The Feedback inbox page. |
 | `launcherAttributes(array)` | `[]` | Extra attributes on the button's wrapper, for your own CSS. |
 | `chatWebhook(?string)` | none | A Google Chat space webhook. Each new post sends it one line. |
+| `developerPosts(bool $enabled, bool\|Closure $canRead, ?string $chatWebhook)` | on, every triager reads | The "For the developers" box. `canRead` limits who sees those posts in the inbox; `chatWebhook` pings the dev team's own space. |
 | `allowUnsend(team: bool\|Closure, authors: bool\|Closure)` | team `true`, authors `false` | Who may unsend their own replies. An unsent reply stays as "… unsent a message". |
 | `navigationGroup(?string)` | none | Where the inbox sits in the navigation. |
 

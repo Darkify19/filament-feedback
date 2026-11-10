@@ -72,7 +72,7 @@ class FeedbackInbox extends Page implements HasTable
 
     public static function getNavigationBadge(): ?string
     {
-        $new = FeedbackPost::query()->where('status', FeedbackStatus::New)->count();
+        $new = FeedbackPost::query()->visibleToTeam()->where('status', FeedbackStatus::New)->count();
 
         return $new > 0 ? (string) $new : null;
     }
@@ -88,7 +88,7 @@ class FeedbackInbox extends Page implements HasTable
         $icons = FilamentFeedbackPlugin::get()->getModuleIcons();
 
         return $table
-            ->query(FeedbackPost::query()->with('author')->withCount('replies'))
+            ->query(FeedbackPost::query()->visibleToTeam()->with('author')->withCount('replies'))
             ->columns([
                 TextColumn::make('created_at')
                     ->label('Sent')
@@ -123,7 +123,7 @@ class FeedbackInbox extends Page implements HasTable
             ])
             ->filters([
                 SelectFilter::make('status')->options(FeedbackStatus::class),
-                SelectFilter::make('kind')->label('Type')->options(collect(FeedbackKind::cases())->mapWithKeys(fn (FeedbackKind $kind): array => [$kind->value => $kind->shortLabel()])->all()),
+                SelectFilter::make('kind')->label('Type')->options(collect(FilamentFeedbackPlugin::get()->getKinds())->filter(fn (FeedbackKind $kind): bool => $kind !== FeedbackKind::Developers || FilamentFeedbackPlugin::get()->canReadDeveloperPosts())->mapWithKeys(fn (FeedbackKind $kind): array => [$kind->value => $kind->shortLabel()])->all()),
                 SelectFilter::make('mood')->options(FeedbackMood::class),
                 SelectFilter::make('module')
                     ->options($modules)
@@ -204,7 +204,9 @@ class FeedbackInbox extends Page implements HasTable
     {
         abort_unless(FilamentFeedbackPlugin::get()->isTriager(), 403);
 
-        $target = $type === 'post' ? FeedbackPost::query()->find($id) : FeedbackReply::query()->find($id);
+        $target = $type === 'post'
+            ? FeedbackPost::query()->visibleToTeam()->find($id)
+            : FeedbackReply::query()->whereHas('post', fn ($posts) => $posts->visibleToTeam())->find($id);
         $user = Filament::auth()->user();
         abort_if($target === null || $target->isWrittenBy($user), 404);
 
