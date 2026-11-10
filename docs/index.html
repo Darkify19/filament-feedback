@@ -127,11 +127,10 @@ td code { white-space: nowrap; }
 
 /* ── Callouts ──────────────────────────────────────── */
 .note, .warn {
-  border: 1px solid var(--rule); border-left-width: 3px; border-radius: 0 6px 6px 0;
-  padding: 0.85rem 1.1rem; margin: 0 0 1.3rem; font-size: 0.95rem; background: var(--bg-soft);
+  border: 1px solid var(--rule); border-radius: 8px;
+  padding: 0.85rem 1.1rem; margin: 0 0 1.3rem; font-size: 0.95rem; background: var(--accent-soft);
 }
-.note { border-left-color: var(--accent); }
-.warn { border-left-color: var(--warn); background: var(--warn-bg); border-color: var(--warn-rule); }
+.warn { background: var(--warn-bg); border-color: var(--warn-rule); }
 .note > :last-child, .warn > :last-child { margin-bottom: 0; }
 .note-t, .warn-t { font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 0.3rem; }
 .note-t { color: var(--accent); }
