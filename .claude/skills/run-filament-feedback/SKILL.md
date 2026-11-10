@@ -1,6 +1,6 @@
 ---
 name: run-filament-feedback
-description: Run, serve, launch, click through, or screenshot the filament-feedback plugin in a real browser (Feedback button quick sheet, My feedback page, reactions, triage inbox, mood board) via a throwaway Testbench host app, on Filament 3, 4 or 5, and run its Pest tests. Use when asked to "run filament-feedback", "see the plugin in a browser", "screenshot the feedback sheet/inbox/My feedback", "post feedback and reply", "test on Filament 3", or verify a UI change to the plugin.
+description: Run, serve, launch, click through, or screenshot the filament-feedback plugin in a real browser (Feedback button quick sheet, module picker and #mentions, My feedback page, reactions, triage inbox, mood board) via a throwaway Testbench host app, on Filament 3, 4 or 5, and run its Pest tests. Use when asked to "run filament-feedback", "see the plugin in a browser", "screenshot the feedback sheet/inbox/My feedback", "post feedback and reply", "test on Filament 3", or verify a UI change to the plugin.
 ---
 
 # Run filament-feedback
@@ -40,7 +40,8 @@ php -S 127.0.0.1:8123 -t vendor/orchestra/testbench-core/laravel/public .claude/
 export FFB_SHOTS=/some/dir
 D=.claude/skills/run-filament-feedback/driver.mjs
 node $D shot 1 '/testing/leave#feedback' sheet.png                    # quick sheet, Leave pre-selected from the page
-node $D post 1 "The time-out column wraps on my phone." DTR Frustrated  # sheet -> pick -> Send
+node $D post 1 "The time-out column wraps on my phone." DTR Frustrated  # sheet -> picker Add -> DTR -> mood -> Send
+node $D click 1 '/testing/leave#feedback' '.fi-modal-open textarea' 'type=Slow on #d' 'key=Enter' --out mention.png  # # suggestions -> DTR tagged
 node $D reply 2 "Thanks Ana, a mobile fix is planned." Done             # inbox -> newest row -> reply + status -> Save
 node $D click 1 /testing/my-feedback '.ffb-react-add' '.ffb-react-picker >> text=Thanks' --out my.png
 node $D click 2 /testing/feedback '.fi-ta-row' --out inbox-thread.png   # triager's thread with timeline + reactions
@@ -51,8 +52,10 @@ node $D eval 1 /testing/my-feedback "new Promise(r => setTimeout(() => r(!!windo
 pkill -f "php -S 127.0.0.1:8123"
 ```
 
-`click` takes any Playwright locators in order and waits for Livewire to settle after
-each. `post` writes `ffb-post-filled.png` / `ffb-post-sent.png`, `reply` writes
+`click` runs steps in order and waits for Livewire to settle after each: a Playwright
+locator is clicked, `type=<text>` types into the focused field key by key (so the `#`
+suggestions fire; `fill()` would not), `key=<Key>` presses a key. `type <user> <path>
+<locator> <text>` is the one-step version. `post` writes `ffb-post-filled.png` / `ffb-post-sent.png`, `reply` writes
 `ffb-reply-filled.png` / `ffb-reply-saved.png`; on any failure the driver saves
 `ffb-error.png` before rethrowing. Check the DB directly with
 `sqlite3 $TMPDIR/filament-feedback-run.sqlite 'select id,status,status_log,fix_confirmed from feedback_posts'`
@@ -84,7 +87,7 @@ Filament 4 is the same with `^4.13.2`, Livewire `^3.6`, Testbench `^10.0`.
 ## Test
 
 ```bash
-vendor/bin/pest --compact      # 12 tests; no server needed
+vendor/bin/pest --compact      # 13 tests; no server needed
 vendor/bin/pint --test         # CI runs this too
 ```
 
@@ -99,7 +102,11 @@ vendor/bin/pint --test         # CI runs this too
 - **Filament modals look "hidden" to Playwright.** The `role=dialog` wrapper has no box, so
   `getByRole('dialog').waitFor()` times out even with the sheet on screen. Target
   `.fi-modal-open .fi-modal-window` (the driver's `openModal()`).
-- **ToggleButtons are hidden inputs + `<label>`s.** Click the label text, not the input.
+- **ToggleButtons are hidden inputs + `<label>`s.** Click the label text, not the input
+  (kind and mood). Modules are not ToggleButtons any more: they're the custom picker
+  (`resources/views/module-picker.blade.php`), so target `.ffb-picker-add` / `.ffb-picker-option`.
+- **`#` suggestions listen to real key events.** Playwright `fill()` sets the value without
+  them; use `type=` steps. The server parses `#Module` too, so a filled message still tags.
 - **The sheet is Filament's own modal, re-positioned by CSS** (`:has(> .fi-modal-window.ffb-sheet)`
   in `resources/css/feedback.css`). On Filament 3 the form is indented under the heading
   icon; on 4/5 it isn't. That's Filament's layout, not a bug.

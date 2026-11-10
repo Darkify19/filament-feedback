@@ -4,7 +4,10 @@
 //   node driver.mjs shot  <user> <path> [out.png]           log in, open path, screenshot
 //   node driver.mjs post  <user> <body> [module] [mood]     open the Feedback slide-over, fill it, Send
 //   node driver.mjs reply <user> <text> [status]            inbox -> open newest post -> reply + status -> Save
-//   node driver.mjs click <user> <path> <locator>... [--out f.png]  click each Playwright locator in turn
+//   node driver.mjs click <user> <path> <step>... [--out f.png]  run steps in turn: a Playwright
+//                     locator is clicked, 'type=<text>' types into the focused field key by key,
+//                     'key=<Key>' presses a key (Enter, Escape, …)
+//   node driver.mjs type  <user> <path> <locator> <text> [--out f.png]  type into a field key by key
 //   node driver.mjs eval  <user> <path> <js>                print the result of a page expression
 //
 // <user> is a users.id: 1 = Ana (staff), 2 = Ben (triager). Screenshots land in $FFB_SHOTS
@@ -59,8 +62,12 @@ try {
         await login('/testing');
         await page.locator('.ffb-launcher button').click();
         const modal = await openModal();
-        // ToggleButtons render a hidden input + <label>; click the label text.
-        if (module) await modal.locator('label').filter({ hasText: new RegExp(`^\\s*${module}\\s*$`) }).click();
+        // Modules: the picker's "Add" list (typing #Module in the message works too).
+        if (module) {
+            await modal.locator('.ffb-picker-add').click();
+            await modal.locator('.ffb-picker-options .ffb-picker-option').filter({ hasText: new RegExp(`^\\s*${module}\\s*$`) }).click();
+        }
+        // Moods are ToggleButtons: a hidden input + <label>; click the label text.
         await modal.locator('label').filter({ hasText: mood }).click();
         await modal.locator('textarea').fill(body);
         await shot('ffb-post-filled.png');
@@ -82,17 +89,28 @@ try {
         const out = args.includes('--out') ? args.splice(args.indexOf('--out'), 2)[1] : 'ffb-click.png';
         const [path, ...locators] = args;
         await login(path);
-        for (const locator of locators) {
-            await page.locator(locator).first().click();
+        for (const step of locators) {
+            if (step.startsWith('type=')) await page.keyboard.type(step.slice(5), { delay: 40 });
+            else if (step.startsWith('key=')) await page.keyboard.press(step.slice(4));
+            else await page.locator(step).first().click();
             await settle();
         }
+        await shot(out);
+    } else if (cmd === 'type') {
+        const out = args.includes('--out') ? args.splice(args.indexOf('--out'), 2)[1] : 'ffb-type.png';
+        const [path, locator, text] = args;
+        await login(path);
+        await page.locator(locator).first().click();
+        // Key by key, so input/keydown listeners (the # suggestions) see it like a person typing.
+        await page.keyboard.type(text, { delay: 40 });
+        await page.waitForTimeout(300);
         await shot(out);
     } else if (cmd === 'eval') {
         const [path, js] = args;
         await login(path);
         console.log(JSON.stringify(await page.evaluate(js), null, 2));
     } else {
-        console.error('usage: node driver.mjs shot|post|reply|click|eval <user-id> ...');
+        console.error('usage: node driver.mjs shot|post|reply|click|type|eval <user-id> ...');
         process.exitCode = 2;
     }
 } catch (e) {
