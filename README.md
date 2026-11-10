@@ -103,7 +103,7 @@ A one-panel app keeps both on (the default) and only sets `canTriage()`.
 | `modules(array\|Closure)` | `[]` | The parts of the app people can tag: `slug => label`, or `slug => ['label' => …, 'icon' => …]`. With none, the field is hidden. |
 | `moduleFromRoute(Closure)` | none | Pre-selects a module. Receives `$route` and `$url` and returns a slug or null. |
 | `canTriage(bool\|Closure)` | `false` | Who opens the inbox and replies as the team. |
-| `button(bool)` | `true` | The floating Feedback button on every page, and the My feedback page. |
+| `button(bool\|Closure)` | `true` | The floating Feedback button on every page, and the My feedback page. A closure is checked on each page and hides only the button. |
 | `inbox(bool)` | `true` | The Feedback inbox page. |
 | `launcherAttributes(array)` | `[]` | Extra attributes on the button's wrapper, for your own CSS. |
 | `impersonateUsing(?Closure $callback, bool\|Closure $can = true)` | off | "View as" on an inbox thread: sign in as the author and open the page they wrote from. The callback does the impersonating with the app's own package (no dependency here), gets `$author`, `$post`, `$url` (same host only, else null) and `$guard`, and returns a redirect, or false. `$can` gets `$author`; triagers only. |
@@ -149,6 +149,15 @@ FilamentFeedbackPlugin::make()
 ```
 
 The button shows in the thread only for triagers who pass `$can`, never on their own posts.
+
+While you're signed in as someone, the Feedback button would post as them. Hide it on the
+author's panel:
+
+```php
+FilamentFeedbackPlugin::make()
+    ->button(fn (): bool => ! app(\Lab404\Impersonate\Services\ImpersonateManager::class)->isImpersonating())
+    // filament-impersonate v4+: ! \STS\FilamentImpersonate\Facades\Impersonation::isImpersonating()
+```
 
 ### Google Chat ping
 

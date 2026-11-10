@@ -139,6 +139,7 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
     public function createPost(array $data): void
     {
         $plugin = $this->plugin();
+        abort_unless($plugin->showsButton(), 403);
         $kind = FeedbackKind::fromState($data['kind']);
         $mood = $data['mood'] ?? null;
         $mood = $mood instanceof FeedbackMood || blank($mood) ? $mood : FeedbackMood::from((int) $mood);

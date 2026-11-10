@@ -496,7 +496,7 @@ example <code>['data-tour-fab' =&gt; '']</code> to stack it with another floatin
     <tr><td><code>modules(array|Closure)</code></td><td><code>[]</code></td><td>The parts of the app people can tag. See <a href="#modules">Modules</a></td></tr>
     <tr><td><code>moduleFromRoute(?Closure)</code></td><td>none</td><td>Pre-picks the page's module from <code>$route</code> and <code>$url</code></td></tr>
     <tr><td><code>canTriage(bool|Closure)</code></td><td><code>false</code></td><td>Who opens the inbox and replies as the team</td></tr>
-    <tr><td><code>button(bool)</code></td><td><code>true</code></td><td>The floating button and My feedback</td></tr>
+    <tr><td><code>button(bool|Closure)</code></td><td><code>true</code></td><td>The floating button and My feedback. A closure is checked on each page and hides only the button</td></tr>
     <tr><td><code>inbox(bool)</code></td><td><code>true</code></td><td>The inbox page</td></tr>
     <tr><td><code>chatWebhook(?string)</code></td><td>none</td><td>Google Chat ping on every new post</td></tr>
     <tr><td><code>developerPosts(bool, bool|Closure|null, ?string)</code></td><td>on, all triagers</td><td>The "For the developers" kind: enabled, <code>canRead</code>, <code>chatWebhook</code></td></tr>

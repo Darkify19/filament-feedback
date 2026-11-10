@@ -311,3 +311,17 @@ it('hands View as the author and a same-host page, to triagers only', function (
     FilamentFeedbackPlugin::get()->impersonateUsing(fn () => true);
     expect(FilamentFeedbackPlugin::get()->canImpersonate($hr))->toBeFalse();
 });
+
+it('hides the button behind a closure, e.g. while impersonating, and refuses posts then', function (): void {
+    signIn(person());
+    $plugin = FilamentFeedbackPlugin::get()->button(fn (): bool => false);
+
+    expect($plugin->hasButton())->toBeTrue()
+        ->and($plugin->showsButton())->toBeFalse();
+
+    Livewire::test(FeedbackLauncher::class, ['panel' => 'testing'])
+        ->call('createPost', ['kind' => 'question', 'body' => 'Posted as someone else?'])
+        ->assertForbidden();
+
+    expect(FeedbackPost::count())->toBe(0);
+});

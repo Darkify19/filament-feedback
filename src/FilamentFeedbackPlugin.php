@@ -43,7 +43,7 @@ class FilamentFeedbackPlugin implements Plugin
 
     protected bool|Closure $canTriage = false;
 
-    protected bool $hasButton = true;
+    protected bool|Closure $hasButton = true;
 
     protected bool $hasInbox = true;
 
@@ -97,12 +97,12 @@ class FilamentFeedbackPlugin implements Plugin
         }
 
         // Posts are written on the button's panel, so their threads live there too.
-        if ($this->hasButton) {
+        if ($this->hasButton()) {
             $panel->pages([MyFeedback::class]);
         }
 
-        if ($this->hasButton) {
-            $panel->renderHook('panels::body.end', fn (): string => Filament::auth()->check()
+        if ($this->hasButton()) {
+            $panel->renderHook('panels::body.end', fn (): string => Filament::auth()->check() && $this->showsButton()
                 ? Blade::render('@livewire(\'filament-feedback-launcher\', [\'panel\' => $panel])', ['panel' => $panel->getId()])
                 : '');
         }
@@ -280,9 +280,10 @@ class FilamentFeedbackPlugin implements Plugin
     }
 
     /**
-     * The floating button people post from. Turn it off on admin-only panels.
+     * The floating button people post from. Turn it off on admin-only panels. A closure is
+     * checked on every page (My feedback stays), e.g. to hide it while impersonating someone.
      */
-    public function button(bool $condition = true): static
+    public function button(bool|Closure $condition = true): static
     {
         $this->hasButton = $condition;
 
@@ -465,7 +466,13 @@ class FilamentFeedbackPlugin implements Plugin
 
     public function hasButton(): bool
     {
-        return $this->hasButton;
+        return $this->hasButton !== false;
+    }
+
+    /** Whether the button shows for the current user, right now. */
+    public function showsButton(): bool
+    {
+        return (bool) $this->evaluate($this->hasButton);
     }
 
     /**

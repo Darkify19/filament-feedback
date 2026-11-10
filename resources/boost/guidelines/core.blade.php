@@ -56,7 +56,7 @@ Pass the same `modules()` to every panel that registers the plugin; the inbox ne
 | `modules(array\|Closure)` | `[]` | `slug => 'Label'` or `slug => ['label' => …, 'icon' => 'heroicon-o-…']`. Slugs are what's stored in `feedback_posts.modules`; don't rename them once posts exist. Empty hides the module field. |
 | `moduleFromRoute(Closure)` | none | Gets `$route` (route name or null) and `$url`; returns a module slug or null. Pre-selects the page's module, and lends each module the navigation icon of the first page it maps to. |
 | `canTriage(bool\|Closure)` | `false` | Who opens the inbox and replies as the team. Nobody until set. |
-| `button(bool)` | `true` | Floating button + My feedback page. Only renders for logged-in users. |
+| `button(bool\|Closure)` | `true` | Floating button + My feedback page. Only renders for logged-in users. A closure is checked per page (My feedback stays), e.g. `fn () => ! Impersonation::isImpersonating()`. |
 | `inbox(bool)` | `true` | The inbox page (still gated by `canTriage`). |
 | `chatWebhook(?string)` | none | Google Chat space webhook; one line per new post. Null/empty turns it off. |
 | `developerPosts(bool $enabled = true, bool\|Closure\|null $canRead = null, ?string $chatWebhook = null)` | on, all triagers read | The "For the developers" kind. `canRead` limits who sees those posts in the inbox; `chatWebhook` pings a separate space. |
