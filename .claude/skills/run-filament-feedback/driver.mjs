@@ -4,10 +4,12 @@
 //   node driver.mjs shot  <user> <path> [out.png]           log in, open path, screenshot
 //   node driver.mjs post  <user> <body> [module] [mood]     open the Feedback slide-over, fill it, Send
 //   node driver.mjs reply <user> <text> [status]            inbox -> open newest post -> reply + status -> Save
+//   node driver.mjs click <user> <path> <locator>... [--out f.png]  click each Playwright locator in turn
 //   node driver.mjs eval  <user> <path> <js>                print the result of a page expression
 //
 // <user> is a users.id: 1 = Ana (staff), 2 = Ben (triager). Screenshots land in $FFB_SHOTS
 // (default: OS temp dir). Base URL: $FFB_URL (default http://127.0.0.1:8123).
+// FFB_PHONE=1 renders at 400px wide; FFB_DARK=1 asks for the dark color scheme.
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from 'playwright-core';
@@ -20,7 +22,10 @@ const browser = await chromium.launch({
     // System Chrome; set CHROME_PATH on a box without it (any Chromium binary works).
     ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: 'chrome' }),
 });
-const page = await browser.newPage({ viewport: { width: 1280, height: 860 } });
+const page = await browser.newPage({
+    viewport: process.env.FFB_PHONE ? { width: 400, height: 860 } : { width: 1280, height: 860 },
+    colorScheme: process.env.FFB_DARK ? 'dark' : 'light',
+});
 page.on('pageerror', (e) => console.error('pageerror:', e.message));
 
 const go = async (path) => {
@@ -73,12 +78,21 @@ try {
         await modal.getByRole('button', { name: 'Save' }).click();
         await settle();
         await shot('ffb-reply-saved.png');
+    } else if (cmd === 'click') {
+        const out = args.includes('--out') ? args.splice(args.indexOf('--out'), 2)[1] : 'ffb-click.png';
+        const [path, ...locators] = args;
+        await login(path);
+        for (const locator of locators) {
+            await page.locator(locator).first().click();
+            await settle();
+        }
+        await shot(out);
     } else if (cmd === 'eval') {
         const [path, js] = args;
         await login(path);
         console.log(JSON.stringify(await page.evaluate(js), null, 2));
     } else {
-        console.error('usage: node driver.mjs shot|post|reply|eval <user-id> ...');
+        console.error('usage: node driver.mjs shot|post|reply|click|eval <user-id> ...');
         process.exitCode = 2;
     }
 } catch (e) {
