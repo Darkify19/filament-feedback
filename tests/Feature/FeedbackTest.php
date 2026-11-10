@@ -137,6 +137,14 @@ it('logs every status change for the timeline', function (): void {
     expect(array_column($post->fresh()->timeline(), 'label'))->toBe(['Sent', 'Seen', 'Done', 'Reopened']);
 });
 
+it('shows timeline steps in the app timezone, whatever zone they were logged in', function (): void {
+    config(['app.timezone' => 'Asia/Manila']);
+    $post = post(person());
+    $post->forceFill(['status_log' => [['status' => 'seen', 'at' => '2026-11-10T06:43:00+00:00']]])->saveQuietly();
+
+    expect($post->fresh()->timeline()[1]['at']->format('M j, g:i A'))->toBe('Nov 10, 2:43 PM');
+});
+
 it('asks the author whether a done post is fixed, and reopens it on a no', function (): void {
     $ana = person();
     $post = post($ana, ['status' => 'done']);

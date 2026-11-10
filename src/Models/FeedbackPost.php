@@ -84,7 +84,8 @@ class FeedbackPost extends Model
 
             $steps[] = [
                 'label' => $status === FeedbackStatus::New ? 'Reopened' : $status->getLabel(),
-                'at' => Carbon::parse($entry['at']),
+                // The log keeps the offset it was written with; show it in the app's zone like created_at.
+                'at' => Carbon::parse($entry['at'])->setTimezone(config('app.timezone')),
                 'status' => $status,
             ];
         }
