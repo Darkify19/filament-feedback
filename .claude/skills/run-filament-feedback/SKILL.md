@@ -41,6 +41,7 @@ export FFB_SHOTS=/some/dir
 D=.claude/skills/run-filament-feedback/driver.mjs
 node $D shot 1 '/testing/leave#feedback' sheet.png                    # quick sheet, Leave pre-selected from the page
 node $D post 1 "The time-out column wraps on my phone." DTR Frustrated  # sheet -> picker Add -> DTR -> mood -> Send
+FFB_PHONE=1 FFB_DARK=1 node $D click 1 '/testing/leave#feedback' '.ffb-kind >> text=For the developers' --out phone-dev.png
 node $D click 1 '/testing/leave#feedback' '.fi-modal-open textarea' 'type=Slow on #d' 'key=Enter' --out mention.png  # # suggestions -> DTR tagged
 node $D reply 2 "Thanks Ana, a mobile fix is planned." Done             # inbox -> newest row -> reply + status -> Save
 node $D click 1 /testing/my-feedback '.ffb-react-add' '.ffb-react-picker >> text=Thanks' --out my.png
@@ -89,7 +90,7 @@ Filament 4 is the same with `^4.13.2`, Livewire `^3.6`, Testbench `^10.0`.
 ## Test
 
 ```bash
-vendor/bin/pest --compact      # 15 tests; no server needed
+vendor/bin/pest --compact      # 16 tests; no server needed
 vendor/bin/pint --test         # CI runs this too
 ```
 
@@ -104,9 +105,9 @@ vendor/bin/pint --test         # CI runs this too
 - **Filament modals look "hidden" to Playwright.** The `role=dialog` wrapper has no box, so
   `getByRole('dialog').waitFor()` times out even with the sheet on screen. Target
   `.fi-modal-open .fi-modal-window` (the driver's `openModal()`).
-- **ToggleButtons are hidden inputs + `<label>`s.** Click the label text, not the input
-  (kind and mood). Modules are not ToggleButtons any more: they're the custom picker
-  (`resources/views/module-picker.blade.php`), so target `.ffb-picker-add` / `.ffb-picker-option`.
+- **The sheet's fields are the plugin's own buttons, not Filament inputs.** Kind is
+  `.ffb-kind`, mood `.ffb-mood`, modules the picker (`.ffb-picker-add` / `.ffb-picker-option`).
+  Click by text: `'.ffb-kind >> text=For the developers'`, `'.ffb-mood >> text=Angry'`.
 - **Unsend asks first (`wire:confirm`).** The driver accepts native dialogs; Playwright
   dismisses them by default, which would silently cancel the unsend.
 - **`#` suggestions listen to real key events.** Playwright `fill()` sets the value without

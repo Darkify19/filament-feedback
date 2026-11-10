@@ -69,8 +69,8 @@ try {
             await modal.locator('.ffb-picker-add').click();
             await modal.locator('.ffb-picker-options .ffb-picker-option').filter({ hasText: new RegExp(`^\\s*${module}\\s*$`) }).click();
         }
-        // Moods are ToggleButtons: a hidden input + <label>; click the label text.
-        await modal.locator('label').filter({ hasText: mood }).click();
+        // Kind and mood are the plugin's own boxes (.ffb-kind / .ffb-mood), plain buttons.
+        await modal.locator('.ffb-mood').filter({ hasText: mood }).click();
         await modal.locator('textarea').fill(body);
         await shot('ffb-post-filled.png');
         await modal.getByRole('button', { name: 'Send' }).click();
