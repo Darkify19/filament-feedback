@@ -63,7 +63,7 @@ Pass the same `modules()` to every panel that registers the plugin; the inbox ne
 | `allowUnsend(team: bool\|Closure, authors: bool\|Closure)` | team `true`, authors `false` | Who may unsend their own replies. Set on the panel each side works from. |
 | `notifyAuthorUsing(Closure)` | Filament database notification | Replaces the "team replied" notification. Gets `$post`, `$reply`, `$author`, `$url`. |
 | `launcherAttributes(array)` | `[]` | Extra HTML attributes on the button wrapper. |
-| `impersonateUsing(?Closure $callback, bool\|Closure $can = true)` | off | "View as" on an inbox thread: sign in as the author and open the page they wrote from. The callback does the impersonating with the app's own package (no dependency here), gets `$author`, `$post`, `$url` (same host only, else null) and `$guard`, and returns a redirect, or false. `$can` gets `$author`; triagers only. |
+| `impersonateUsing(?Closure $callback, bool\|Closure $can = true)` | off | "View as" on an inbox thread: sign in as the author and open the page they wrote from. The callback does the impersonating with the app's own package (no dependency here), gets `$author`, `$post`, `$url` (on this app and still routed, else null: fall back to their home) and `$guard`, and returns a redirect, or false. `$can` gets `$author`; triagers only. |
 | `navigationGroup(?string)` | none | Inbox navigation group. |
 
 ### Common tasks

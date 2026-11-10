@@ -106,7 +106,7 @@ A one-panel app keeps both on (the default) and only sets `canTriage()`.
 | `button(bool\|Closure)` | `true` | The floating Feedback button on every page, and the My feedback page. A closure is checked on each page and hides only the button. |
 | `inbox(bool)` | `true` | The Feedback inbox page. |
 | `launcherAttributes(array)` | `[]` | Extra attributes on the button's wrapper, for your own CSS. |
-| `impersonateUsing(?Closure $callback, bool\|Closure $can = true)` | off | "View as" on an inbox thread: sign in as the author and open the page they wrote from. The callback does the impersonating with the app's own package (no dependency here), gets `$author`, `$post`, `$url` (same host only, else null) and `$guard`, and returns a redirect, or false. `$can` gets `$author`; triagers only. |
+| `impersonateUsing(?Closure $callback, bool\|Closure $can = true)` | off | "View as" on an inbox thread: sign in as the author and open the page they wrote from. The callback does the impersonating with the app's own package (no dependency here), gets `$author`, `$post`, `$url` (on this app and still routed, else null: fall back to their home) and `$guard`, and returns a redirect, or false. `$can` gets `$author`; triagers only. |
 | `chatWebhook(?string)` | none | A Google Chat space webhook. Each new post sends it one line. |
 | `developerPosts(bool $enabled, bool\|Closure $canRead, ?string $chatWebhook)` | on, every triager reads | The "For the developers" box. `canRead` limits who sees those posts in the inbox; `chatWebhook` pings the dev team's own space. |
 | `allowUnsend(team: bool\|Closure, authors: bool\|Closure)` | team `true`, authors `false` | Who may unsend their own replies. An unsent reply stays as "… unsent a message". |

@@ -24,6 +24,7 @@ use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -234,6 +235,13 @@ class FeedbackInbox extends Page implements HasTable
         // Only a page on this app: the URL comes from the author's browser.
         $url = $post->context['url'] ?? null;
         $url = is_string($url) && in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true) && parse_url($url, PHP_URL_HOST) === request()->getHost() ? $url : null;
+
+        // And one that still exists: a page renamed or removed since would land on a 404.
+        try {
+            $url && app('router')->getRoutes()->match(Request::create($url));
+        } catch (Throwable) {
+            $url = null;
+        }
 
         $result = $plugin->evaluate($plugin->getImpersonateUsing(), [
             'author' => $post->author,

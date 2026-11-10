@@ -296,8 +296,9 @@ it('writes a Chat ping with the kind, modules and mood', function (): void {
 it('hands View as the author and a same-host page, to triagers only', function (): void {
     $ana = person();
     $hr = person('Hr', admin: true);
-    $local = post($ana, ['context' => ['url' => 'http://localhost/leave?tab=2']]);
+    $local = post($ana, ['context' => ['url' => 'http://localhost/testing/leave?tab=2']]);
     $foreign = post($ana, ['context' => ['url' => 'https://evil.example/phish']]);
+    $gone = post($ana, ['context' => ['url' => 'http://localhost/testing/renamed-since']]);
     $calls = [];
     FilamentFeedbackPlugin::get()->impersonateUsing(function ($author, $post, $url, $guard) use (&$calls) {
         $calls[] = [$author->getKey(), $post->getKey(), $url, $guard];
@@ -306,10 +307,15 @@ it('hands View as the author and a same-host page, to triagers only', function (
     });
 
     signIn($hr);
-    Livewire::test(FeedbackInbox::class)->call('impersonate', $local->id)->assertRedirect('http://localhost/leave?tab=2');
+    Livewire::test(FeedbackInbox::class)->call('impersonate', $local->id)->assertRedirect('http://localhost/testing/leave?tab=2');
     Livewire::test(FeedbackInbox::class)->call('impersonate', $foreign->id);
+    Livewire::test(FeedbackInbox::class)->call('impersonate', $gone->id);
 
-    expect($calls)->toBe([[$ana->id, $local->id, 'http://localhost/leave?tab=2', 'web'], [$ana->id, $foreign->id, null, 'web']]);
+    expect($calls)->toBe([
+        [$ana->id, $local->id, 'http://localhost/testing/leave?tab=2', 'web'],
+        [$ana->id, $foreign->id, null, 'web'],
+        [$ana->id, $gone->id, null, 'web'],
+    ]);
 
     FilamentFeedbackPlugin::get()->impersonateUsing(fn () => true, can: fn ($author) => $author->isNot($ana));
     Livewire::test(FeedbackInbox::class)->call('impersonate', $local->id)->assertForbidden();

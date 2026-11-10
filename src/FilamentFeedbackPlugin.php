@@ -364,7 +364,7 @@ class FilamentFeedbackPlugin implements Plugin
      * Adds "View as" to a thread in the inbox: sign in as the author and open the page they
      * wrote from. The package impersonates nobody itself; `$callback` does it with the app's
      * own impersonation package, gets `$author`, `$post`, `$url` (the page it was sent from,
-     * same host only, else null) and `$guard` (the author's panel guard), and returns a
+     * on this app and still routed, else null) and `$guard` (the author's panel guard), and returns a
      * redirect, or false when it refused. `$can` gets `$author`; triagers only either way.
      */
     public function impersonateUsing(?Closure $callback, bool|Closure $can = true): static
