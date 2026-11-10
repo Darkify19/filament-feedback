@@ -67,7 +67,7 @@ Until Packagist, an app adds the GitHub repo and requires the tag:
 
 ```json
 "repositories": [{ "type": "vcs", "url": "https://github.com/Darkify19/filament-feedback" }],
-"require": { "carljanzell/filament-feedback": "^0.1" }
+"require": { "carljanzell/filament-feedback": "^0.4" }
 ```
 
 To keep editing the package live on a laptop, use a local `composer.json` override or
@@ -114,7 +114,7 @@ To keep editing the package live on a laptop, use a local `composer.json` overri
 | Click a board cell to filter the table | Module + mood |
 | Notify triagers on a new post (`->notifyTriagers(fn (): iterable)`) | Today only the event and the Chat ping fire |
 | Translations (`lang/en`) | All copy currently inline |
-| Publish to Packagist, README screenshots | Like `filament-insights` |
+| Publish to Packagist, README screenshots | Screenshots, docs site and listing image ✅ (`art/`, `docs/`, 2026-11-10). Packagist ⬜ |
 
 ## v0.3 — Teammates' apps
 
