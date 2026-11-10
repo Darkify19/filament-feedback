@@ -28,7 +28,7 @@ Not on Packagist yet: add the GitHub repository first.
 
 ```bash
 composer config repositories.filament-feedback vcs https://github.com/Darkify19/filament-feedback
-composer require carljanzell/filament-feedback:^0.1
+composer require carljanzell/filament-feedback:^0.4
 php artisan migrate
 php artisan filament:assets
 ```
@@ -130,6 +130,15 @@ example [filament-insights](https://github.com/Darkify19/filament-insights)'
 
 Three tables: `feedback_posts`, `feedback_replies` and `feedback_reactions`. Authors are
 polymorphic (`morphs()`), so any authenticatable model works, UUID keys included.
+
+## For AI agents
+
+The package ships an agent guide at
+[`resources/boost/guidelines/core.blade.php`](resources/boost/guidelines/core.blade.php): setup,
+every plugin method, events, data and common tasks. Apps using
+[Laravel Boost](https://github.com/laravel/boost) pick it up automatically on
+`php artisan boost:install` (or `boost:update`). Without Boost, point your agent at that file.
+Working on the plugin itself: [AGENTS.md](AGENTS.md).
 
 ## Testing
 
