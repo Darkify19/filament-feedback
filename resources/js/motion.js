@@ -11,7 +11,8 @@
 
 const SHEET = '.ffb-sheet'
 const PICKS = `${SHEET} label.fi-btn, ${SHEET} .fi-fo-toggle-buttons label, .ffb-picker-option, .ffb-picker-add, .ffb-react, .ffb-item`
-const ARRIVING = '.ffb-message, .ffb-timeline li, .ffb-fix, .ffb-notice, .ffb-picker-chip'
+// A list row that comes back (its chip was removed) eases in too.
+const ARRIVING = '.ffb-message, .ffb-timeline li, .ffb-fix, .ffb-notice, .ffb-picker-chip, .ffb-picker-options .ffb-picker-option'
 
 export default ({ animate, stagger, spring }) => {
     const gentle = spring({ bounce: 0.15, duration: 520 })
@@ -34,6 +35,40 @@ export default ({ animate, stagger, spring }) => {
             })
         }
     }
+
+    /** The picker's list as it opens: every row, every time, a short cascade. */
+    const enter = (elements) => {
+        const rows = [...elements]
+        rows.forEach((row) => seen.add(row))
+
+        if (rows.length) {
+            animate(rows, {
+                opacity: { from: 0 },
+                translateY: { from: -4 },
+                delay: stagger(18, { start: 40 }),
+                duration: 260,
+                ease: 'outQuad',
+                onComplete: release(rows, 'opacity', 'transform'),
+            })
+        }
+    }
+
+    /** A picked row or a removed chip: fades, folds its height, then the change lands. */
+    const leave = (element) => new Promise((resolve) => {
+        const { height } = element.getBoundingClientRect()
+
+        animate(element, {
+            opacity: 0,
+            scale: 0.96,
+            height: [height, 0],
+            paddingTop: 0,
+            paddingBottom: 0,
+            marginTop: 0,
+            duration: 200,
+            ease: 'outQuad',
+            onComplete: resolve,
+        })
+    })
 
     const pop = (element) => animate(element, {
         scale: [{ to: 0.9, duration: 90, ease: 'outQuad' }, { to: 1, ease: springy }],
@@ -87,5 +122,5 @@ export default ({ animate, stagger, spring }) => {
         }).observe(document.body, { childList: true, subtree: true })
     }
 
-    return { start, pop, reveal }
+    return { start, pop, reveal, enter, leave }
 }

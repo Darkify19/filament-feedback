@@ -20,12 +20,27 @@
             option(slug) { return this.options.find((option) => option.slug === slug) },
             filter(query) {
                 const needle = (query ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
-                return this.options.filter((option) => ! needle
+                // Already picked? It's a chip above, so it leaves the list.
+                return this.options.filter((option) => ! this.picked.includes(option.slug)).filter((option) => ! needle
                     || option.mention.toLowerCase().includes(needle)
                     || option.slug.toLowerCase().includes(needle))
             },
-            toggle(slug) {
-                this.state = this.picked.includes(slug) ? this.picked.filter((s) => s !== slug) : [...this.picked, slug]
+            remove(slug) {
+                this.state = this.picked.filter((s) => s !== slug)
+            },
+            // With motion, the row or chip eases out first; without it, this is instant.
+            async gently(element, change) {
+                const motion = await (window.ffbMotion ?? Promise.resolve(null))
+                if (motion) await motion.leave(element)
+                change()
+            },
+            show() {
+                this.open = ! this.open
+                this.query = ''
+                if (this.open) this.$nextTick(() => {
+                    this.$refs.search.focus()
+                    window.ffbMotion?.then((motion) => motion?.enter(this.$refs.list.querySelectorAll('.ffb-picker-option')))
+                })
             },
             add(slug) {
                 if (! this.picked.includes(slug)) this.state = [...this.picked, slug]
@@ -76,13 +91,13 @@
                 <span class="ffb-picker-chip">
                     <span class="ffb-picker-icon" x-html="option(slug)?.icon ?? ''"></span>
                     <span x-text="option(slug)?.label ?? slug"></span>
-                    <button type="button" class="ffb-picker-remove" x-on:click="toggle(slug)" x-bind:aria-label="'Remove ' + (option(slug)?.label ?? slug)">
+                    <button type="button" class="ffb-picker-remove" x-on:click="gently($el.closest('.ffb-picker-chip'), () => remove(slug))" x-bind:aria-label="'Remove ' + (option(slug)?.label ?? slug)">
                         <x-filament::icon icon="heroicon-m-x-mark" class="ffb-icon ffb-icon-sm" />
                     </button>
                 </span>
             </template>
 
-            <button type="button" class="ffb-picker-add" x-on:click="open = ! open; query = ''; open && $nextTick(() => $refs.search.focus())" x-bind:aria-expanded="open">
+            <button type="button" class="ffb-picker-add" x-on:click="show()" x-bind:aria-expanded="open">
                 <x-filament::icon icon="heroicon-m-plus" class="ffb-icon ffb-icon-sm" />
                 <span x-text="picked.length ? 'Add' : 'Pick a part'"></span>
             </button>
@@ -90,7 +105,18 @@
             <span class="ffb-picker-hint" x-show="! open">or type <kbd>#</kbd> in your message</span>
         </div>
 
-        <div class="ffb-picker-panel" x-show="open" x-cloak x-on:keydown.escape.stop.prevent="open = false">
+        <div
+            class="ffb-picker-panel"
+            x-show="open"
+            x-cloak
+            x-transition:enter="ffb-t"
+            x-transition:enter-start="ffb-t-out"
+            x-transition:enter-end="ffb-t-in"
+            x-transition:leave="ffb-t"
+            x-transition:leave-start="ffb-t-in"
+            x-transition:leave-end="ffb-t-out"
+            x-on:keydown.escape.stop.prevent="open = false"
+        >
             <input
                 type="search"
                 class="ffb-picker-search"
@@ -98,23 +124,23 @@
                 aria-label="Search parts of the app"
                 x-ref="search"
                 x-model="query"
-                x-on:keydown.enter.prevent="filter(query)[0] && toggle(filter(query)[0].slug)"
+                x-on:keydown.enter.prevent="filter(query)[0] && add(filter(query)[0].slug)"
             >
-            <div class="ffb-picker-options" role="listbox" aria-multiselectable="true">
+            <div class="ffb-picker-options" role="listbox" x-ref="list">
                 <template x-for="item in filter(query)" x-bind:key="item.slug">
                     <button
                         type="button"
                         role="option"
                         class="ffb-picker-option"
-                        x-bind:aria-selected="picked.includes(item.slug)"
-                        x-on:click="toggle(item.slug)"
+                        aria-selected="false"
+                        x-on:click="gently($el, () => add(item.slug))"
                     >
                         <span class="ffb-picker-icon" x-html="item.icon"></span>
                         <span x-text="item.label"></span>
-                        <x-filament::icon icon="heroicon-m-check" class="ffb-icon ffb-picker-check" />
+                        <x-filament::icon icon="heroicon-m-plus" class="ffb-icon ffb-icon-sm ffb-picker-plus" />
                     </button>
                 </template>
-                <p class="ffb-picker-empty" x-show="! filter(query).length">No part of the app matches.</p>
+                <p class="ffb-picker-empty" x-show="! filter(query).length" x-text="picked.length === options.length ? 'Every part is picked.' : 'No part of the app matches.'"></p>
             </div>
         </div>
 
@@ -124,6 +150,9 @@
             aria-label="Tag a part of the app"
             x-show="suggestions.length"
             x-cloak
+            x-transition:enter="ffb-t"
+            x-transition:enter-start="ffb-t-out"
+            x-transition:enter-end="ffb-t-in"
             x-bind:style="mention && { top: mention.top + 'px', left: mention.left + 'px' }"
         >
             <template x-for="(item, index) in suggestions" x-bind:key="item.slug">

@@ -631,7 +631,10 @@
     display: none;
 }
 
-.ffb-picker-search {
+/* Doubled class: host form resets (Tailwind forms) paint [type=search] white otherwise. */
+.ffb-picker .ffb-picker-search {
+    appearance: none;
+    box-shadow: none;
     width: 100%;
     padding: 0.4rem 0.625rem;
     border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
@@ -642,7 +645,7 @@
     font-size: 0.875rem;
 }
 
-.ffb-picker-search:focus {
+.ffb-picker .ffb-picker-search:focus {
     outline: 2px solid var(--ffb-accent);
     outline-offset: -1px;
 }
@@ -674,14 +677,38 @@
     background: color-mix(in srgb, currentColor 7%, transparent);
 }
 
-.ffb-picker-check {
+.ffb-picker-plus {
     margin-inline-start: auto;
-    visibility: hidden;
+    opacity: 0;
     color: var(--ffb-accent);
+    transition: opacity 0.15s ease;
 }
 
-.ffb-picker-option[aria-selected="true"] .ffb-picker-check {
-    visibility: visible;
+.ffb-picker-option:hover .ffb-picker-plus,
+.ffb-picker-option:focus-visible .ffb-picker-plus {
+    opacity: 1;
+}
+
+/* Open/close for the picker's list and the # suggestions (Alpine x-transition classes) */
+.ffb-t {
+    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform-origin: top left;
+}
+
+.ffb-t-out {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+}
+
+.ffb-t-in {
+    opacity: 1;
+    transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffb-t {
+        transition: none;
+    }
 }
 
 .ffb-picker-empty {
