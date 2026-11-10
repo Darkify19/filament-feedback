@@ -20,6 +20,8 @@ sets a status. A board shows the mood for each module, so you can see how a rele
 - Motion by anime.js, loaded only when the viewer allows motion.
 - Optional Google Chat ping for every new post.
 
+Full documentation: **https://darkify19.github.io/filament-feedback/**
+
 > Pre-release. See [ROADMAP.md](ROADMAP.md) for what's in, what's next and what 1.0 means.
 
 ## Install
