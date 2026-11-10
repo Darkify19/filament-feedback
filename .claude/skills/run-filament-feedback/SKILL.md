@@ -45,6 +45,8 @@ node $D click 1 '/testing/leave#feedback' '.fi-modal-open textarea' 'type=Slow o
 node $D reply 2 "Thanks Ana, a mobile fix is planned." Done             # inbox -> newest row -> reply + status -> Save
 node $D click 1 /testing/my-feedback '.ffb-react-add' '.ffb-react-picker >> text=Thanks' --out my.png
 node $D click 2 /testing/feedback '.fi-ta-row' --out inbox-thread.png   # triager's thread with timeline + reactions
+node $D click 2 /testing/feedback '.fi-ta-row' '.ffb-unsend' --out unsent.png   # team unsends its reply
+node $D click 1 /testing/my-feedback '.ffb-composer textarea' 'type=One more thing' 'key=Shift+Enter' 'type=on Leave.' 'key=Enter'  # Enter sends
 FFB_PHONE=1 FFB_DARK=1 node $D shot 1 /testing/my-feedback phone-dark.png
 node $D eval 1 /testing/my-feedback "new Promise(r => setTimeout(() => r(!!window.ffbMotionStarted), 1500))"  # anime.js loaded?
 
@@ -87,7 +89,7 @@ Filament 4 is the same with `^4.13.2`, Livewire `^3.6`, Testbench `^10.0`.
 ## Test
 
 ```bash
-vendor/bin/pest --compact      # 13 tests; no server needed
+vendor/bin/pest --compact      # 15 tests; no server needed
 vendor/bin/pint --test         # CI runs this too
 ```
 
@@ -105,6 +107,8 @@ vendor/bin/pint --test         # CI runs this too
 - **ToggleButtons are hidden inputs + `<label>`s.** Click the label text, not the input
   (kind and mood). Modules are not ToggleButtons any more: they're the custom picker
   (`resources/views/module-picker.blade.php`), so target `.ffb-picker-add` / `.ffb-picker-option`.
+- **Unsend asks first (`wire:confirm`).** The driver accepts native dialogs; Playwright
+  dismisses them by default, which would silently cancel the unsend.
 - **`#` suggestions listen to real key events.** Playwright `fill()` sets the value without
   them; use `type=` steps. The server parses `#Module` too, so a filled message still tags.
 - **The sheet is Filament's own modal, re-positioned by CSS** (`:has(> .fi-modal-window.ffb-sheet)`

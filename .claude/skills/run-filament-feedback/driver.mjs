@@ -30,6 +30,8 @@ const page = await browser.newPage({
     colorScheme: process.env.FFB_DARK ? 'dark' : 'light',
 });
 page.on('pageerror', (e) => console.error('pageerror:', e.message));
+// Accept native confirms (wire:confirm on Unsend); Playwright dismisses them by default.
+page.on('dialog', (dialog) => dialog.accept());
 
 const go = async (path) => {
     await page.goto(`${BASE}${path}`);
