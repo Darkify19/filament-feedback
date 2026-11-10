@@ -50,6 +50,10 @@ Don't relitigate these in a new session. Change them only on purpose.
   there. Use a `ComponentAttributeBag` or a ternary echo.
 - Filament 3 doesn't validate each item of a multiple `ToggleButtons`. Filter the
   submitted values server-side (the launcher intersects modules with the configured list).
+- Migrations are checked against MySQL, not just SQLite: a unique index over two 255-char
+  morph types passes SQLite and dies on MySQL's 3072-byte key limit, and MySQL can't roll
+  back DDL, so the half-applied migration then fails every deploy ("column already exists").
+  Every migration checks `hasColumn` / `hasTable` before it changes anything.
 - On a Livewire update request no panel is "current". Resolve the user through
   `Filament::getPanel($this->panel)->auth()`.
 
@@ -147,4 +151,4 @@ To keep editing the package live on a laptop, use a local `composer.json` overri
 | Date | What happened |
 |---|---|
 | 2026-11-09 | Repo created. v0.1 core built, tests green on 3.3.57, 4.16.2 and 5.11.2. Wired into UPLB-TKS (path repo) in place of its "Chat with us" popup. |
-| 2026-11-10 | Run skill (Testbench dev host + Playwright driver). Redesign: quick sheet + My feedback page, nav icons, reactions, timeline, fix check, anime.js. Pushed to GitHub, tagged v0.1.0; TKS composer moved to the tag. Then v0.2.0: compact module picker + `#Module` mentions; v0.2.1 picker polish; v0.3.0: Enter to send, unsend, stats widget (filament-insights can place it); v0.4.0: "For the developers", kind boxes, mood scale, phone sheet. |
+| 2026-11-10 | Run skill (Testbench dev host + Playwright driver). Redesign: quick sheet + My feedback page, nav icons, reactions, timeline, fix check, anime.js. Pushed to GitHub, tagged v0.1.0; TKS composer moved to the tag. Then v0.2.0: compact module picker + `#Module` mentions; v0.2.1 picker polish; v0.3.0: Enter to send, unsend, stats widget (filament-insights can place it); v0.4.0: "For the developers", kind boxes, mood scale, phone sheet. v0.4.1: the reactions migration broke TKS deploys on MySQL (key too long, then half-applied); made re-runnable, unique index dropped. |
