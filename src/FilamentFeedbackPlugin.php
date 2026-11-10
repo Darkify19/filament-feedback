@@ -14,6 +14,7 @@ use Filament\Panel;
 use Filament\Resources\Pages\Page as ResourcePage;
 use Filament\Support\Concerns\EvaluatesClosures;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -54,6 +55,10 @@ class FilamentFeedbackPlugin implements Plugin
     protected ?string $navigationGroup = null;
 
     protected ?Closure $notifyAuthorUsing = null;
+
+    protected ?Closure $impersonateUsing = null;
+
+    protected bool|Closure $canImpersonate = true;
 
     protected bool|Closure $teamCanUnsend = true;
 
@@ -352,6 +357,35 @@ class FilamentFeedbackPlugin implements Plugin
     public function getNotifyAuthorUsing(): ?Closure
     {
         return $this->notifyAuthorUsing;
+    }
+
+    /**
+     * Adds "View as" to a thread in the inbox: sign in as the author and open the page they
+     * wrote from. The package impersonates nobody itself; `$callback` does it with the app's
+     * own impersonation package, gets `$author`, `$post`, `$url` (the page it was sent from,
+     * same host only, else null) and `$guard` (the author's panel guard), and returns a
+     * redirect, or false when it refused. `$can` gets `$author`; triagers only either way.
+     */
+    public function impersonateUsing(?Closure $callback, bool|Closure $can = true): static
+    {
+        $this->impersonateUsing = $callback;
+        $this->canImpersonate = $can;
+
+        return $this;
+    }
+
+    public function getImpersonateUsing(): ?Closure
+    {
+        return $this->impersonateUsing;
+    }
+
+    public function canImpersonate(?Model $author): bool
+    {
+        return $this->impersonateUsing !== null
+            && $author !== null
+            && $this->isTriager()
+            && ! $author->is(Filament::auth()->user())
+            && (bool) $this->evaluate($this->canImpersonate, ['author' => $author]);
     }
 
     /**

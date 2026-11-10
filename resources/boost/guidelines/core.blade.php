@@ -63,6 +63,7 @@ Pass the same `modules()` to every panel that registers the plugin; the inbox ne
 | `allowUnsend(team: bool\|Closure, authors: bool\|Closure)` | team `true`, authors `false` | Who may unsend their own replies. Set on the panel each side works from. |
 | `notifyAuthorUsing(Closure)` | Filament database notification | Replaces the "team replied" notification. Gets `$post`, `$reply`, `$author`, `$url`. |
 | `launcherAttributes(array)` | `[]` | Extra HTML attributes on the button wrapper. |
+| `impersonateUsing(?Closure $callback, bool\|Closure $can = true)` | off | "View as" on an inbox thread: sign in as the author and open the page they wrote from. The callback does the impersonating with the app's own package (no dependency here), gets `$author`, `$post`, `$url` (same host only, else null) and `$guard`, and returns a redirect, or false. `$can` gets `$author`; triagers only. |
 | `navigationGroup(?string)` | none | Inbox navigation group. |
 
 ### Common tasks
@@ -72,6 +73,7 @@ Pass the same `modules()` to every panel that registers the plugin; the inbox ne
 - **Author reply notifications:** call `->databaseNotifications()` on the button's panel, and the user model must use `Notifiable`. Otherwise use `notifyAuthorUsing()`.
 - **Open the sheet from a link or button:** link to `#feedback` on any page of the button's panel.
 - **Move the button:** CSS on `:root`: `--ffb-launcher-bottom`, `--ffb-launcher-left`.
+- **View as the author (impersonate):** `impersonateUsing()` with the app's impersonation package, e.g. stechstudio/filament-impersonate: `fn (Model $author, ?string $url, string $guard) => Impersonate::make()->guard($guard)->redirectTo($url ?? '/')->impersonate($author)`. Don't add an impersonation dependency to the package.
 - **Stats on a dashboard:** add `CarlJanzell\FilamentFeedback\Widgets\FeedbackStats` to the panel's widgets. On the inbox only triagers see it; elsewhere the host page decides.
 - **Link to a thread or the inbox from outside the app:** `FilamentFeedbackPlugin::threadUrl($post->panel, $post->id)`, `FilamentFeedbackPlugin::inboxUrl()`.
 - **Read the plugin's config at runtime:** `FilamentFeedbackPlugin::get()` (current panel).

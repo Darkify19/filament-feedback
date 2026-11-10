@@ -284,3 +284,30 @@ it('writes a Chat ping with the kind, modules and mood', function (): void {
         ->toStartWith('*Feedback* from Ana · DTR, Leave · Frustrated')
         ->toContain('> The DTR page is confusing.');
 });
+
+it('hands View as the author and a same-host page, to triagers only', function (): void {
+    $ana = person();
+    $hr = person('Hr', admin: true);
+    $local = post($ana, ['context' => ['url' => 'http://localhost/leave?tab=2']]);
+    $foreign = post($ana, ['context' => ['url' => 'https://evil.example/phish']]);
+    $calls = [];
+    FilamentFeedbackPlugin::get()->impersonateUsing(function ($author, $post, $url, $guard) use (&$calls) {
+        $calls[] = [$author->getKey(), $post->getKey(), $url, $guard];
+
+        return redirect($url ?? '/');
+    });
+
+    signIn($hr);
+    Livewire::test(FeedbackInbox::class)->call('impersonate', $local->id)->assertRedirect('http://localhost/leave?tab=2');
+    Livewire::test(FeedbackInbox::class)->call('impersonate', $foreign->id);
+
+    expect($calls)->toBe([[$ana->id, $local->id, 'http://localhost/leave?tab=2', 'web'], [$ana->id, $foreign->id, null, 'web']]);
+
+    FilamentFeedbackPlugin::get()->impersonateUsing(fn () => true, can: fn ($author) => $author->isNot($ana));
+    Livewire::test(FeedbackInbox::class)->call('impersonate', $local->id)->assertForbidden();
+
+    // Not a triager: no button, and the inbox itself won't mount.
+    signIn($ana);
+    FilamentFeedbackPlugin::get()->impersonateUsing(fn () => true);
+    expect(FilamentFeedbackPlugin::get()->canImpersonate($hr))->toBeFalse();
+});

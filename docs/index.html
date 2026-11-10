@@ -502,6 +502,7 @@ example <code>['data-tour-fab' =&gt; '']</code> to stack it with another floatin
     <tr><td><code>developerPosts(bool, bool|Closure|null, ?string)</code></td><td>on, all triagers</td><td>The "For the developers" kind: enabled, <code>canRead</code>, <code>chatWebhook</code></td></tr>
     <tr><td><code>allowUnsend(team:, authors:)</code></td><td>team <code>true</code>, authors <code>false</code></td><td>Who may unsend their own replies. An unsent reply stays as "… unsent a message"</td></tr>
     <tr><td><code>notifyAuthorUsing(?Closure)</code></td><td>database notification</td><td>Replaces the "team replied" notification. Gets <code>$post</code>, <code>$reply</code>, <code>$author</code>, <code>$url</code></td></tr>
+    <tr><td><code>impersonateUsing(?Closure, bool|Closure $can)</code></td><td>off</td><td>"View as" on an inbox thread: sign in as the author and open the page they wrote from, through your app's own impersonation package. Gets <code>$author</code>, <code>$post</code>, <code>$url</code> (same host only), <code>$guard</code>; triagers only</td></tr>
     <tr><td><code>launcherAttributes(array)</code></td><td><code>[]</code></td><td>Extra attributes on the button's wrapper</td></tr>
     <tr><td><code>navigationGroup(?string)</code></td><td>none</td><td>Where the inbox sits in the navigation</td></tr>
   </tbody>

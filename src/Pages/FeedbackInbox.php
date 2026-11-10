@@ -146,6 +146,7 @@ class FeedbackInbox extends Page implements HasTable
                         'moduleIcons' => $icons,
                         'viewer' => Filament::auth()->user(),
                         'canUnsend' => FilamentFeedbackPlugin::get()->teamCanUnsend(),
+                        'canImpersonate' => FilamentFeedbackPlugin::get()->canImpersonate($record->author),
                     ]))
                     ->fillForm(function (FeedbackPost $record): array {
                         // Opening a new post is reading it.
@@ -219,6 +220,33 @@ class FeedbackInbox extends Page implements HasTable
         abort_unless($reply && $reply->is_from_team && $reply->isWrittenBy(Filament::auth()->user()) && FilamentFeedbackPlugin::get()->isTriager() && FilamentFeedbackPlugin::get()->teamCanUnsend(), 403);
 
         $reply->unsend();
+    }
+
+    /**
+     * "View as": hands the author and the page they wrote from to the app's impersonateUsing().
+     */
+    public function impersonate(int $postId): mixed
+    {
+        $plugin = FilamentFeedbackPlugin::get();
+        $post = FeedbackPost::query()->visibleToTeam()->with('author')->find($postId);
+        abort_unless($post && $plugin->canImpersonate($post->author), 403);
+
+        // Only a page on this app: the URL comes from the author's browser.
+        $url = $post->context['url'] ?? null;
+        $url = is_string($url) && in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true) && parse_url($url, PHP_URL_HOST) === request()->getHost() ? $url : null;
+
+        $result = $plugin->evaluate($plugin->getImpersonateUsing(), [
+            'author' => $post->author,
+            'post' => $post,
+            'url' => $url,
+            'guard' => (Filament::getPanels()[$post->panel] ?? Filament::getCurrentPanel())?->getAuthGuard(),
+        ]);
+
+        if (! $result) {
+            Notification::make()->title('Couldn\'t sign in as '.$post->authorName())->danger()->send();
+        }
+
+        return $result ?: null;
     }
 
     /**

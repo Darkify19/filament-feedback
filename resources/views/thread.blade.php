@@ -47,6 +47,20 @@
         @endif
     </dl>
 
+    @if ($canImpersonate ?? false)
+        <div>
+            <x-filament::button
+                size="sm"
+                color="gray"
+                icon="heroicon-m-eye"
+                wire:click="impersonate({{ $post->getKey() }})"
+                wire:confirm="Sign in as {{ $post->authorName() }}{{ filled($context['url'] ?? null) ? ' and open the page they sent this from' : '' }}? Leave from the banner when you're done."
+            >
+                View as {{ $post->authorName() }}
+            </x-filament::button>
+        </div>
+    @endif
+
     @include('filament-feedback::timeline')
 
     <div class="ffb-thread">

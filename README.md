@@ -106,6 +106,7 @@ A one-panel app keeps both on (the default) and only sets `canTriage()`.
 | `button(bool)` | `true` | The floating Feedback button on every page, and the My feedback page. |
 | `inbox(bool)` | `true` | The Feedback inbox page. |
 | `launcherAttributes(array)` | `[]` | Extra attributes on the button's wrapper, for your own CSS. |
+| `impersonateUsing(?Closure $callback, bool\|Closure $can = true)` | off | "View as" on an inbox thread: sign in as the author and open the page they wrote from. The callback does the impersonating with the app's own package (no dependency here), gets `$author`, `$post`, `$url` (same host only, else null) and `$guard`, and returns a redirect, or false. `$can` gets `$author`; triagers only. |
 | `chatWebhook(?string)` | none | A Google Chat space webhook. Each new post sends it one line. |
 | `developerPosts(bool $enabled, bool\|Closure $canRead, ?string $chatWebhook)` | on, every triager reads | The "For the developers" box. `canRead` limits who sees those posts in the inbox; `chatWebhook` pings the dev team's own space. |
 | `allowUnsend(team: bool\|Closure, authors: bool\|Closure)` | team `true`, authors `false` | Who may unsend their own replies. An unsent reply stays as "… unsent a message". |
@@ -128,6 +129,26 @@ It sits bottom-left, and the sheet opens just above it. Shift both with CSS vari
 ```css
 :root { --ffb-launcher-bottom: 5rem; --ffb-launcher-left: 1rem; }
 ```
+
+### View as the author
+
+The package doesn't impersonate anyone itself. Wire it to the package your app already
+uses; for example [stechstudio/filament-impersonate](https://github.com/stechstudio/filament-impersonate):
+
+```php
+use STS\FilamentImpersonate\Tables\Actions\Impersonate; // Actions\Impersonate on v4+
+
+FilamentFeedbackPlugin::make()
+    ->impersonateUsing(
+        fn (Model $author, ?string $url, string $guard) => Impersonate::make()
+            ->guard($guard)
+            ->redirectTo($url ?? '/')
+            ->impersonate($author),
+        can: fn (): bool => auth()->user()?->hasRole(['hr', 'super_admin']) ?? false,
+    );
+```
+
+The button shows in the thread only for triagers who pass `$can`, never on their own posts.
 
 ### Google Chat ping
 
