@@ -1,11 +1,14 @@
-@props(['name', 'time', 'body', 'team' => false, 'reactable' => null, 'viewer' => null])
+@props(['name', 'time', 'body', 'team' => false, 'reactable' => null, 'viewer' => null, 'canUnsend' => false])
 
 @php
     use CarlJanzell\FilamentFeedback\Models\FeedbackPost;
 
     $type = $reactable instanceof FeedbackPost ? 'post' : 'reply';
+    $unsent = $type === 'reply' && $reactable?->isUnsent();
+    // Only replies, only your own, and only where the plugin allows this side to.
+    $unsendable = $canUnsend && $type === 'reply' && ! $unsent && $viewer !== null && $reactable->isWrittenBy($viewer);
     // People react to the other side's messages, not their own.
-    $canReact = $reactable !== null && $viewer !== null && ! $reactable->isWrittenBy($viewer);
+    $canReact = $reactable !== null && $viewer !== null && ! $reactable->isWrittenBy($viewer) && ! ($type === 'reply' && $reactable->isUnsent());
     $summary = $reactable?->reactionSummary($viewer) ?? [];
 
     // #Module mentions the current panel knows read as tags. Applied after escaping, so only
@@ -27,9 +30,26 @@
 >
     <header class="ffb-message-meta">
         <span class="ffb-message-name">{{ $name }}</span>
-        <time datetime="{{ $time->toIso8601String() }}" title="{{ $time->toDayDateTimeString() }}">{{ $time->diffForHumans() }}</time>
+        <span class="ffb-message-side">
+            @if ($unsendable)
+                <button
+                    type="button"
+                    class="ffb-unsend"
+                    wire:click="unsend({{ $reactable->getKey() }})"
+                    wire:confirm="Unsend this message? It disappears for everyone in this thread."
+                >Unsend</button>
+            @endif
+            <time datetime="{{ $time->toIso8601String() }}" title="{{ $time->toDayDateTimeString() }}">{{ $time->diffForHumans() }}</time>
+        </span>
     </header>
-    <div class="ffb-message-body">{!! nl2br($html) !!}</div>
+    @if ($unsent)
+        <div class="ffb-message-body ffb-unsent">
+            <x-filament::icon icon="heroicon-o-no-symbol" class="ffb-icon ffb-icon-sm" />
+            {{ $viewer && $reactable->isWrittenBy($viewer) ? 'You unsent a message' : $name.' unsent a message' }}
+        </div>
+    @else
+        <div class="ffb-message-body">{!! nl2br($html) !!}</div>
+    @endif
 
     @if ($reactable && ($canReact || collect($summary)->sum('count') > 0))
         <div class="ffb-reactions" x-data="{ more: false }">

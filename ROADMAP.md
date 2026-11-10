@@ -2,9 +2,9 @@
 
 **Status (2026-11-10):** v0.1 is built, redesigned (quick sheet + My feedback page,
 app icons, reactions, timeline, "did this fix it", anime.js motion) and green on
-Filament 3.3, 4 and 5 (13 Pest tests, run locally against all three, and looked at in a
-browser on 3 and 5). On GitHub as `Darkify19/filament-feedback`, tagged `v0.2.0` (adds the module picker and `#` mentions).
-UPLB-TKS requires `^0.2` through a VCS repository.
+Filament 3.3, 4 and 5 (15 Pest tests, run locally against all three, and looked at in a
+browser on 3 and 5). On GitHub as `Darkify19/filament-feedback`, tagged `v0.3.0` (module picker and `#` mentions in 0.2; Enter to send, unsend and
+inbox stats in 0.3). UPLB-TKS requires `^0.3` through a VCS repository.
 
 **Next up:** CI green on GitHub, then the TKS pilot on both panels. Packagist after that,
 so apps can drop the VCS repository entry.
@@ -89,6 +89,7 @@ To keep editing the package live on a laptop, use a local `composer.json` overri
 | My feedback page: threads, replies, `?post=` links from notifications | ✅ |
 | Module icons from the app's navigation (or `'icon'` in `modules()`) | ✅ |
 | Compact module picker + `#Module` mentions with autocomplete (v0.2.0) | ✅ |
+| Enter sends a reply; unsend own replies (`allowUnsend()`); inbox stats widget (v0.3.0) | ✅ |
 | Reactions on posts and replies (Thanks, Same here, Seen, Fixed) | ✅ |
 | Status timeline (`status_log`) and "Did this fix it?" | ✅ |
 | anime.js motion, loaded on request, off with reduced motion | ✅ |
@@ -144,4 +145,4 @@ To keep editing the package live on a laptop, use a local `composer.json` overri
 | Date | What happened |
 |---|---|
 | 2026-11-09 | Repo created. v0.1 core built, tests green on 3.3.57, 4.16.2 and 5.11.2. Wired into UPLB-TKS (path repo) in place of its "Chat with us" popup. |
-| 2026-11-10 | Run skill (Testbench dev host + Playwright driver). Redesign: quick sheet + My feedback page, nav icons, reactions, timeline, fix check, anime.js. Pushed to GitHub, tagged v0.1.0; TKS composer moved to the tag. Then v0.2.0: compact module picker + `#Module` mentions. |
+| 2026-11-10 | Run skill (Testbench dev host + Playwright driver). Redesign: quick sheet + My feedback page, nav icons, reactions, timeline, fix check, anime.js. Pushed to GitHub, tagged v0.1.0; TKS composer moved to the tag. Then v0.2.0: compact module picker + `#Module` mentions; v0.2.1 picker polish; v0.3.0: Enter to send, unsend, stats widget (filament-insights can place it). |

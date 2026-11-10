@@ -9,6 +9,7 @@ use CarlJanzell\FilamentFeedback\Models\FeedbackPost;
 use CarlJanzell\FilamentFeedback\Pages\FeedbackInbox;
 use CarlJanzell\FilamentFeedback\Pages\MyFeedback;
 use CarlJanzell\FilamentFeedback\Support\GoogleChatPing;
+use CarlJanzell\FilamentFeedback\Widgets\FeedbackStats;
 use Livewire\Livewire;
 
 it('saves a post with its modules, mood and the page it came from', function (): void {
@@ -177,6 +178,54 @@ it('toggles reactions on the other side\'s messages only', function (): void {
     Livewire::test(FeedbackInbox::class)->call('react', 'post', $post->id, 'seen');
 
     expect($post->fresh()->load('reactions')->reactionSummary($ana)[2])->toMatchArray(['count' => 1, 'mine' => false]);
+});
+
+it('lets the team unsend its own replies, and authors only when allowed', function (): void {
+    $ana = person();
+    $hr = person('Hr', admin: true);
+    $post = post($ana);
+    $teamReply = $post->addReply($hr, 'Wrong thread, sorry.', fromTeam: true);
+    $anasReply = $post->addReply($ana, 'Oops, typo.', fromTeam: false);
+
+    signIn($hr);
+    Livewire::test(FeedbackInbox::class)->call('unsend', $anasReply->id)->assertForbidden();
+    Livewire::test(FeedbackInbox::class)->call('unsend', $teamReply->id);
+
+    expect($teamReply->fresh()->isUnsent())->toBeTrue()
+        ->and($teamReply->fresh()->body)->toBe('');
+
+    signIn($ana);
+    Livewire::withQueryParams(['post' => $post->id])->test(MyFeedback::class)
+        ->assertSee('Hr unsent a message')
+        ->call('unsend', $anasReply->id)
+        ->assertForbidden();
+
+    FilamentFeedbackPlugin::get()->allowUnsend(authors: true);
+    Livewire::withQueryParams(['post' => $post->id])->test(MyFeedback::class)
+        ->call('unsend', $anasReply->id)
+        ->assertSee('You unsent a message');
+
+    expect($anasReply->fresh()->isUnsent())->toBeTrue();
+});
+
+it('sums up the last 30 days for the team', function (): void {
+    $ana = person();
+    $hr = person('Hr', admin: true);
+    $answered = post($ana, ['mood' => 2]);
+    post($ana, ['mood' => -1, 'status' => 'done', 'fix_confirmed' => true]);
+    post($ana, ['mood' => -2, 'created_at' => now()->subDays(40)]);
+
+    $this->travel(3)->hours();
+    $answered->addReply($hr, 'On it.', fromTeam: true);
+
+    signIn($hr);
+
+    Livewire::test(FeedbackStats::class)
+        ->assertSee('Posts, last 30 days')
+        ->assertSee('3h')
+        ->assertSee('1 confirmed fixed')
+        ->assertSee('+0.5')
+        ->assertSee('+2.5 vs the 30 days before');
 });
 
 it('gives modules an icon, borrowing the navigation icon of the page they map to', function (): void {

@@ -10,6 +10,7 @@ use CarlJanzell\FilamentFeedback\FilamentFeedbackPlugin;
 use CarlJanzell\FilamentFeedback\Models\FeedbackPost;
 use CarlJanzell\FilamentFeedback\Models\FeedbackReply;
 use CarlJanzell\FilamentFeedback\Support\Compat;
+use CarlJanzell\FilamentFeedback\Widgets\FeedbackStats;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
@@ -144,6 +145,7 @@ class FeedbackInbox extends Page implements HasTable
                         'modules' => $modules,
                         'moduleIcons' => $icons,
                         'viewer' => Filament::auth()->user(),
+                        'canUnsend' => FilamentFeedbackPlugin::get()->teamCanUnsend(),
                     ]))
                     ->fillForm(function (FeedbackPost $record): array {
                         // Opening a new post is reading it.
@@ -207,6 +209,22 @@ class FeedbackInbox extends Page implements HasTable
         abort_if($target === null || $target->isWrittenBy($user), 404);
 
         $target->toggleReaction($user, Reaction::from($reaction));
+    }
+
+    public function unsend(int $replyId): void
+    {
+        $reply = FeedbackReply::query()->find($replyId);
+        abort_unless($reply && $reply->is_from_team && $reply->isWrittenBy(Filament::auth()->user()) && FilamentFeedbackPlugin::get()->isTriager() && FilamentFeedbackPlugin::get()->teamCanUnsend(), 403);
+
+        $reply->unsend();
+    }
+
+    /**
+     * @return array<class-string>
+     */
+    protected function getHeaderWidgets(): array
+    {
+        return [FeedbackStats::class];
     }
 
     protected function notifyAuthor(FeedbackPost $post, FeedbackReply $reply): void

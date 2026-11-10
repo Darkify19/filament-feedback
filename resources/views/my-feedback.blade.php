@@ -91,6 +91,7 @@
                                 :body="$reply->body"
                                 :team="$reply->is_from_team"
                                 :reactable="$reply"
+                                :can-unsend="$canUnsend"
                                 :viewer="$viewer"
                             />
                         @endforeach
@@ -104,12 +105,13 @@
                                 class="ffb-textarea"
                                 aria-label="Reply to the team"
                                 placeholder="Reply to the team…"
-                                x-on:keydown.meta.enter.prevent="$wire.reply()"
-                                x-on:keydown.ctrl.enter.prevent="$wire.reply()"
+                                {{-- Enter sends; Shift+Enter is a new line. isComposing: don't send mid-IME. --}}
+                                x-on:keydown.enter="if (! $event.shiftKey && ! $event.isComposing) { $event.preventDefault(); $wire.reply() }"
                             ></textarea>
                         </x-filament::input.wrapper>
                         <x-filament::button type="submit" icon="heroicon-m-paper-airplane" wire:target="reply">Reply</x-filament::button>
                     </form>
+                    <p class="ffb-composer-hint"><kbd>Enter</kbd> to send · <kbd>Shift</kbd> + <kbd>Enter</kbd> for a new line</p>
                     @error('draft')
                         <p class="ffb-error">{{ $message }}</p>
                     @enderror

@@ -3,6 +3,7 @@
 namespace CarlJanzell\FilamentFeedback;
 
 use CarlJanzell\FilamentFeedback\Livewire\FeedbackLauncher;
+use CarlJanzell\FilamentFeedback\Widgets\FeedbackStats;
 use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
@@ -30,5 +31,6 @@ class FeedbackServiceProvider extends ServiceProvider
         // Livewire 3 can't resolve a package component by name on an update request
         // unless it is registered; Livewire 4 doesn't need it but accepts it.
         Livewire::component('filament-feedback-launcher', FeedbackLauncher::class);
+        Livewire::component('filament-feedback-stats', FeedbackStats::class);
     }
 }

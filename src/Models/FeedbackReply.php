@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
  * @property int $feedback_post_id
  * @property bool $is_from_team
  * @property string $body
+ * @property Carbon|null $unsent_at
  * @property Carbon $created_at
  */
 class FeedbackReply extends Model
@@ -26,7 +27,23 @@ class FeedbackReply extends Model
 
     protected $casts = [
         'is_from_team' => 'boolean',
+        'unsent_at' => 'datetime',
     ];
+
+    /**
+     * Takes the message back for everyone: the text and its reactions go, a placeholder stays
+     * so the thread still reads in order.
+     */
+    public function unsend(): void
+    {
+        $this->reactions()->delete();
+        $this->update(['body' => '', 'unsent_at' => now()]);
+    }
+
+    public function isUnsent(): bool
+    {
+        return $this->unsent_at !== null;
+    }
 
     /**
      * @return BelongsTo<FeedbackPost, $this>

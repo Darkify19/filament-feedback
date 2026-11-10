@@ -162,6 +162,14 @@ class MyFeedback extends Page
         $target->toggleReaction($this->user(), Reaction::from($reaction));
     }
 
+    public function unsend(int $replyId): void
+    {
+        $reply = $this->selected()?->replies()->find($replyId);
+        abort_unless($reply && ! $reply->is_from_team && $reply->isWrittenBy($this->user()) && FilamentFeedbackPlugin::get()->authorsCanUnsend(), 403);
+
+        $reply->unsend();
+    }
+
     public function selected(): ?FeedbackPost
     {
         return $this->post ? $this->posts()->find($this->post) : null;
@@ -191,6 +199,7 @@ class MyFeedback extends Page
             'modules' => $plugin->getModules(),
             'moduleIcons' => $plugin->getModuleIcons(),
             'viewer' => $this->user(),
+            'canUnsend' => $plugin->authorsCanUnsend(),
         ];
     }
 

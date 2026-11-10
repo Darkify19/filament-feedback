@@ -67,6 +67,7 @@
                 :body="$reply->body"
                 :team="$reply->is_from_team"
                 :reactable="$reply"
+                :can-unsend="$canUnsend"
                 :viewer="$viewer"
             />
         @endforeach

@@ -12,6 +12,9 @@ sets a status. A board shows the mood for each module, so you can see how a rele
   typing `#DTR` (or `#BreakRoom`, `#dtr`, …) in the message tags one with autocomplete.
 - Module chips use your app's own navigation icons.
 - Reactions (Thanks, Same here, Seen, Fixed) and a "Did this fix it?" check once a post is Done.
+- Replies send on Enter (Shift+Enter for a new line), and can be unsent (`allowUnsend()`).
+- Stats on the inbox: posts, median first-reply time, what got done, and mood against the
+  30 days before.
 - Motion by anime.js, loaded only when the viewer allows motion.
 - Optional Google Chat ping for every new post.
 
@@ -72,6 +75,7 @@ A one-panel app keeps both on (the default) and only sets `canTriage()`.
 | `inbox(bool)` | `true` | The Feedback inbox page. |
 | `launcherAttributes(array)` | `[]` | Extra attributes on the button's wrapper, for your own CSS. |
 | `chatWebhook(?string)` | none | A Google Chat space webhook. Each new post sends it one line. |
+| `allowUnsend(team: bool\|Closure, authors: bool\|Closure)` | team `true`, authors `false` | Who may unsend their own replies. An unsent reply stays as "… unsent a message". |
 | `navigationGroup(?string)` | none | Where the inbox sits in the navigation. |
 
 Set it on the panel that has the button: posts are created there.
@@ -98,6 +102,15 @@ In a Chat space: space name → **Apps & integrations** → **Webhooks** → add
 its URL into `chatWebhook()`. The app only calls out, so this works from a server Google
 can't reach, and it needs no Cloud project. If the option is missing, your Workspace admin
 has turned off webhooks.
+
+### Stats
+
+The inbox opens with `CarlJanzell\FilamentFeedback\Widgets\FeedbackStats`: posts in the last
+30 days (with a 14-day sparkline), the median time to the team's first reply, posts done and
+whether authors confirmed the fix, and the average mood against the 30 days before. Only
+triagers see it. It is a plain Filament stats widget, so a dashboard can use it too, for
+example [filament-insights](https://github.com/Darkify19/filament-insights)'
+`->widgets([FeedbackStats::class])`.
 
 ## Hooking in
 

@@ -54,6 +54,10 @@ class FilamentFeedbackPlugin implements Plugin
 
     protected ?Closure $notifyAuthorUsing = null;
 
+    protected bool|Closure $teamCanUnsend = true;
+
+    protected bool|Closure $authorsCanUnsend = false;
+
     public static function make(): static
     {
         return app(static::class);
@@ -339,6 +343,29 @@ class FilamentFeedbackPlugin implements Plugin
     public function getNotifyAuthorUsing(): ?Closure
     {
         return $this->notifyAuthorUsing;
+    }
+
+    /**
+     * Who may take back (unsend) their own replies: the team in the inbox, authors on My
+     * feedback. An unsent reply stays in the thread as "unsent a message". Set it on each
+     * panel the side works from (the inbox's panel for the team, the button's for authors).
+     */
+    public function allowUnsend(bool|Closure $team = true, bool|Closure $authors = false): static
+    {
+        $this->teamCanUnsend = $team;
+        $this->authorsCanUnsend = $authors;
+
+        return $this;
+    }
+
+    public function teamCanUnsend(): bool
+    {
+        return (bool) $this->evaluate($this->teamCanUnsend);
+    }
+
+    public function authorsCanUnsend(): bool
+    {
+        return (bool) $this->evaluate($this->authorsCanUnsend);
     }
 
     public function navigationGroup(?string $group): static
