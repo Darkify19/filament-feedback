@@ -12,6 +12,13 @@
     z-index: 30;
 }
 
+/* The button floats, so it would sit on whatever scrolls under it: the sidebar's last items
+   on desktop, a form's Save/Cancel on phones. Room at the end of both lets them scroll clear. */
+body:has(.ffb-launcher) .fi-sidebar-nav,
+body:has(.ffb-launcher) .fi-main {
+    padding-bottom: calc(var(--ffb-launcher-bottom, 1.5rem) + 4rem);
+}
+
 .ffb-launcher .ffb-launcher-button {
     border-radius: 9999px;
     padding-inline: 1rem;
