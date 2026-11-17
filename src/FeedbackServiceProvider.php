@@ -2,6 +2,8 @@
 
 namespace CarlJanzell\FilamentFeedback;
 
+use CarlJanzell\FilamentFeedback\Commands\ExportFeedback;
+use CarlJanzell\FilamentFeedback\Commands\SuggestReplies;
 use CarlJanzell\FilamentFeedback\Livewire\FeedbackLauncher;
 use CarlJanzell\FilamentFeedback\Widgets\FeedbackStats;
 use Filament\Support\Assets\Css;
@@ -32,5 +34,9 @@ class FeedbackServiceProvider extends ServiceProvider
         // unless it is registered; Livewire 4 doesn't need it but accepts it.
         Livewire::component('filament-feedback-launcher', FeedbackLauncher::class);
         Livewire::component('filament-feedback-stats', FeedbackStats::class);
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([ExportFeedback::class, SuggestReplies::class]);
+        }
     }
 }

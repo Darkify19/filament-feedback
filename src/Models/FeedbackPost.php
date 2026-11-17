@@ -11,6 +11,7 @@ use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -168,6 +169,36 @@ class FeedbackPost extends Model
         $query->whereHas('replies', fn (Builder $replies) => $replies
             ->where('is_from_team', true)
             ->whereColumn('feedback_replies.created_at', '>', 'feedback_posts.author_seen_at'));
+    }
+
+    /**
+     * @return HasMany<FeedbackSuggestion, $this>
+     */
+    public function suggestions(): HasMany
+    {
+        return $this->hasMany(FeedbackSuggestion::class);
+    }
+
+    /**
+     * The suggested reply waiting for a triager. Importing a newer one supersedes it, so there's one at most.
+     *
+     * @return HasOne<FeedbackSuggestion, $this>
+     */
+    public function pendingSuggestion(): HasOne
+    {
+        return $this->hasOne(FeedbackSuggestion::class)->ofMany(['id' => 'max'], fn (Builder $query) => $query->pending());
+    }
+
+    /**
+     * The newest reply's id, or null before the first one. Uses `withMax('replies', 'id')` when the query loaded it.
+     */
+    public function latestReplyId(): ?int
+    {
+        $id = array_key_exists('replies_max_id', $this->attributes)
+            ? $this->attributes['replies_max_id']
+            : $this->replies()->reorder()->max('id');
+
+        return $id === null ? null : (int) $id;
     }
 
     public function addReply(Model $author, string $body, bool $fromTeam): FeedbackReply

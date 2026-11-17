@@ -75,6 +75,8 @@ class FilamentFeedbackPlugin implements Plugin
 
     protected ?string $screenshotDisk = null;
 
+    protected bool|Closure $hasSuggestions = false;
+
     public static function make(): static
     {
         return app(static::class);
@@ -470,6 +472,23 @@ class FilamentFeedbackPlugin implements Plugin
     public function getScreenshotDisk(): string
     {
         return $this->screenshotDisk ?? config('filesystems.default');
+    }
+
+    /**
+     * Suggested replies in the inbox: drafts written by a tool (`feedback:suggest`, or Import
+     * suggestions) that a triager sends as is, edits, or discards. Nothing reaches an author until
+     * a triager sends it. Set it on the inbox's panel; triagers only either way.
+     */
+    public function suggestions(bool|Closure $enabled = true): static
+    {
+        $this->hasSuggestions = $enabled;
+
+        return $this;
+    }
+
+    public function hasSuggestions(): bool
+    {
+        return $this->isTriager() && (bool) $this->evaluate($this->hasSuggestions);
     }
 
     /**

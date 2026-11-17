@@ -51,6 +51,12 @@ node $D click 1 /testing/my-feedback '.ffb-composer textarea' 'type=One more thi
 FFB_PHONE=1 FFB_DARK=1 node $D shot 1 /testing/my-feedback phone-dark.png
 node $D eval 1 /testing/my-feedback "new Promise(r => setTimeout(() => r(!!window.ffbMotionStarted), 1500))"  # anime.js loaded?
 
+# Suggested replies in every state (safe, low confidence, stale, status-only, none); the host turns suggestions() on:
+php .claude/skills/run-filament-feedback/server.php setup suggestions
+node $D click 2 /testing/feedback '.fi-ta-row >> text=Good day!' --out suggestion.png              # callout + pre-filled box
+node $D click 2 /testing/feedback 'button:has-text("Send suggested")' '.fi-modal-open button:has-text("Send")'
+FFB_FULL=1 node $D shot 2 /testing/feedback inbox-full.png                                          # whole page, not just the viewport
+
 # Screenshots with a few weeks of data (fictional "Brightline" app, 10 users, 31 posts):
 # FFB_DEMO=1 on both setup and serve. `art/` in the repo was captured this way at 1440x900, 2x.
 FFB_DEMO=1 php .claude/skills/run-filament-feedback/server.php setup demo
@@ -63,7 +69,7 @@ pkill -f "php -S 127.0.0.1:8123"
 
 `click` runs steps in order and waits for Livewire to settle after each: a Playwright
 locator is clicked, `type=<text>` types into the focused field key by key (so the `#`
-suggestions fire; `fill()` would not), `key=<Key>` presses a key. `type <user> <path>
+suggestions fire; `fill()` would not), `key=<Key>` presses a key, `wait=<ms>` waits. `type <user> <path>
 <locator> <text>` is the one-step version. `post` writes `ffb-post-filled.png` / `ffb-post-sent.png`, `reply` writes
 `ffb-reply-filled.png` / `ffb-reply-saved.png`; on any failure the driver saves
 `ffb-error.png` before rethrowing. Check the DB directly with
@@ -96,11 +102,15 @@ Filament 4 is the same with `^4.13.2`, Livewire `^3.6`, Testbench `^10.0`.
 ## Test
 
 ```bash
-vendor/bin/pest --compact      # 16 tests; no server needed
+vendor/bin/pest --compact      # 28 tests; no server needed
 vendor/bin/pint --test         # CI runs this too
 ```
 
 ## Gotchas
+
+- **Toasts don't show in this host.** Filament notifications (e.g. "Reply sent") never appear
+  here, before suggested replies too. Check them with `assertNotified()` in Pest, or in a real
+  app, not from a screenshot.
 
 - **The test fixture panel has no middleware.** `tests/Fixtures/TestPanelProvider` works for
   Pest (`actingAs`) but in a browser the session never sticks and `/testing` redirects to

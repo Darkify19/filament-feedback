@@ -3,9 +3,12 @@
 namespace CarlJanzell\FilamentFeedback\Support;
 
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Notifications\Actions\Action as NotificationAction;
 use Filament\Schemas\Schema;
 use Filament\Tables\Actions\Action as TableAction;
+use Filament\Tables\Actions\BulkAction as TableBulkAction;
 
 /**
  * The few places Filament 3 and Filament 4/5 disagree on a class name.
@@ -19,6 +22,26 @@ final class Compat
     {
         return class_exists(TableAction::class)
             ? TableAction::make($name)
+            : Action::make($name);
+    }
+
+    /**
+     * A table bulk action: `Tables\Actions\BulkAction` on 3, `Actions\BulkAction` on 4 and 5.
+     */
+    public static function bulkAction(string $name): BulkAction|TableBulkAction
+    {
+        return class_exists(TableBulkAction::class)
+            ? TableBulkAction::make($name)
+            : BulkAction::make($name);
+    }
+
+    /**
+     * An action on a form field (e.g. a hint action): `Forms\Components\Actions\Action` on 3, `Actions\Action` on 4 and 5.
+     */
+    public static function formAction(string $name): Action|FormAction
+    {
+        return class_exists(FormAction::class)
+            ? FormAction::make($name)
             : Action::make($name);
     }
 

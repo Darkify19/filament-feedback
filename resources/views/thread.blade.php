@@ -87,4 +87,8 @@
             />
         @endforeach
     </div>
+
+    @if ($suggestion ?? null)
+        @include('filament-feedback::suggestion')
+    @endif
 </div>

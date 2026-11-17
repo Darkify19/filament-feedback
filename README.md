@@ -29,6 +29,8 @@ sets a status. A board shows the mood for each module, so you can see how a rele
 - Module chips use your app's own navigation icons.
 - Reactions (Thanks, Same here, Seen, Fixed) and a "Did this fix it?" check once a post is Done.
 - Screenshots on a post (`screenshots()`), private to the author and the team.
+- Suggested replies (`suggestions()`): a tool drafts replies, a triager sends them in one go
+  or edits each one first. Nothing reaches an author until a person presses send.
 - Replies send on Enter (Shift+Enter for a new line), and can be unsent (`allowUnsend()`).
 - Stats on the inbox: posts, median first-reply time, what got done, and mood against the
   30 days before.
@@ -59,7 +61,7 @@ Full documentation: **https://darkify19.github.io/filament-feedback/**
 ## Install
 
 ```bash
-composer require carljanzell/filament-feedback:^0.4
+composer require carljanzell/filament-feedback:^0.6
 php artisan migrate
 php artisan filament:assets
 ```
@@ -112,6 +114,7 @@ A one-panel app keeps both on (the default) and only sets `canTriage()`.
 | `developerPosts(bool $enabled, bool\|Closure $canRead, ?string $chatWebhook)` | on, every triager reads | The "For the developers" box. `canRead` limits who sees those posts in the inbox; `chatWebhook` pings the dev team's own space. |
 | `allowUnsend(team: bool\|Closure, authors: bool\|Closure)` | team `true`, authors `false` | Who may unsend their own replies. An unsent reply stays as "… unsent a message". |
 | `screenshots(bool $enabled = true, ?string $disk = null)` | on, app's default disk | The Screenshots field in the sheet: up to 3 PNG, JPEG, WebP or GIF images, 5 MB each, stored privately under `feedback-screenshots/` and served only to the author and triagers who can read the post. Deleted with the post. |
+| `suggestions(bool\|Closure $enabled = true)` | off | Suggested replies in the inbox, for triagers. See [Suggested replies](#suggested-replies). Set it on the inbox's panel. |
 | `navigationGroup(?string)` | none | Where the inbox sits in the navigation. |
 
 Set it on the panel that has the button: posts are created there.
@@ -177,12 +180,61 @@ triagers see it. It is a plain Filament stats widget, so a dashboard can use it 
 example [filament-insights](https://github.com/Darkify19/filament-insights)'
 `->widgets([FeedbackStats::class])`.
 
+### Suggested replies
+
+Turn on `->suggestions()` and any tool can draft replies for the inbox: Claude, a script, or
+saved replies later. A suggestion is a draft. It never reaches the author by itself.
+
+1. `php artisan feedback:export --open` prints the posts waiting on the team as JSON: not
+   Done, no team reply yet or the author spoke last, and no pending suggestion. Author names
+   are left out. `recent_outcomes` lists the last 30 decided suggestions (draft, what was
+   actually sent, and how it ended), so a drafter can learn how triagers edit. Also
+   `--post=ID` (repeatable) and `--since=DATE`.
+2. The tool writes a suggestions file and loads it with `php artisan feedback:suggest file.json`
+   (`--dry-run` to check first), or a triager pastes it into **Import suggestions** on the
+   inbox (Dry run is on by default).
+3. In the inbox, a sparkles icon marks rows with a suggestion. **Send suggested (N)** sends
+   every suggestion that is safe to send, as the triager who pressed it. Opening a row fills
+   the reply box and status from the suggestion, with the drafter's note above it: edit and
+   **Save**, or **Discard suggestion**. The bulk action **Send suggestions** sends the rows
+   you picked.
+
+```json
+{
+  "version": 1,
+  "drafted_by": "Claude · feedback-reply",
+  "suggestions": [{
+    "post_id": 9,
+    "for_reply_id": null,
+    "reply": "Hi! Open My Attendance and press Add missed punch.",
+    "status": "done",
+    "confidence": "high",
+    "note": "For the team only: what was checked, what to do by hand.",
+    "sources": ["attendance-guide#s-manual"]
+  }]
+}
+```
+
+- `reply` null makes a status-only suggestion (e.g. close a test post without replying).
+  `status` null leaves the status as it is. One of the two is required.
+- `for_reply_id` is the post's latest reply id when the draft was written (null: no replies
+  yet). If someone writes in the thread after that, the suggestion is **stale**. Leave the key
+  out and it's taken as the thread now.
+- `confidence` is `high`, `medium` (default) or `low`. **Send suggested** skips low and stale
+  ones; the bulk action sends low ones you picked but never stale ones.
+- A new suggestion for a post supersedes its older pending one. Unknown posts and invalid
+  statuses are skipped and reported.
+- Each suggestion ends as `sent_as_is` (the body went out unchanged), `sent_edited`,
+  `discarded` or `superseded`, in `feedback_suggestions`.
+
 ## Hooking in
 
 - `CarlJanzell\FilamentFeedback\Events\FeedbackPosted` fires with `$post` on every new post.
   Listen to it to notify your triagers.
 - `CarlJanzell\FilamentFeedback\Events\ReplyPosted` fires with `$reply` on both sides of a
   thread. `$reply->is_from_team` tells you which side.
+- `CarlJanzell\FilamentFeedback\Events\SuggestionDecided` fires with `$suggestion` when a
+  triager sends or discards one; `$suggestion->outcome` says which.
 - The author gets a Filament database notification when the team replies. Its link opens
   that thread on My feedback (`/my-feedback?post=…`). Turn on `->databaseNotifications()`
   on that panel. `notifyAuthorUsing()` receives the same `$url`.
@@ -190,7 +242,7 @@ example [filament-insights](https://github.com/Darkify19/filament-insights)'
 
 ## Data
 
-Three tables: `feedback_posts`, `feedback_replies` and `feedback_reactions`. Authors are
+Four tables: `feedback_posts`, `feedback_replies`, `feedback_reactions` and `feedback_suggestions`. Authors are
 polymorphic (`morphs()`), so any authenticatable model works, UUID keys included.
 
 ## For AI agents

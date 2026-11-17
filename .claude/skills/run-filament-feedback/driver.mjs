@@ -12,7 +12,7 @@
 //
 // <user> is a users.id: 1 = Ana (staff), 2 = Ben (triager). Screenshots land in $FFB_SHOTS
 // (default: OS temp dir). Base URL: $FFB_URL (default http://127.0.0.1:8123).
-// FFB_PHONE=1 renders at 400px wide; FFB_DARK=1 asks for the dark color scheme.
+// FFB_PHONE=1 renders at 400px wide; FFB_DARK=1 asks for the dark color scheme; FFB_FULL=1 shoots the whole page.
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from 'playwright-core';
@@ -47,7 +47,7 @@ const openModal = async () => {
 };
 const shot = async (name) => {
     const file = join(SHOTS, name);
-    await page.screenshot({ path: file });
+    await page.screenshot({ path: file, fullPage: !!process.env.FFB_FULL });
     console.log('screenshot:', file);
 };
 
@@ -94,6 +94,7 @@ try {
         for (const step of locators) {
             if (step.startsWith('type=')) await page.keyboard.type(step.slice(5), { delay: 40 });
             else if (step.startsWith('key=')) await page.keyboard.press(step.slice(4));
+            else if (step.startsWith('wait=')) await page.waitForTimeout(Number(step.slice(5)));
             else await page.locator(step).first().click();
             await settle();
         }

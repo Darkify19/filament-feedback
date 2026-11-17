@@ -25,7 +25,9 @@ To see it in a browser (Testbench host app + headless Chrome, screenshots), use 
 | `src/Livewire/FeedbackLauncher.php` | Floating button + quick sheet; creates posts |
 | `src/Pages/FeedbackInbox.php` | Triager inbox: table, thread, reply, status, mood board |
 | `src/Pages/MyFeedback.php` | Author's threads, reactions, timeline, "did this fix it" |
-| `src/Models/` | `FeedbackPost`, `FeedbackReply`, `FeedbackReaction` (polymorphic authors) |
+| `src/Actions/` | `RespondToPost` (the inbox's Save), `SendSuggestion`, `ImportSuggestions` |
+| `src/Commands/` | `feedback:export` and `feedback:suggest` (suggested replies) |
+| `src/Models/` | `FeedbackPost`, `FeedbackReply`, `FeedbackReaction`, `FeedbackSuggestion` (polymorphic authors) |
 | `src/Support/Compat.php` | Class names that differ between Filament 3 and 4/5 |
 | `resources/css/feedback.css` | All styling (plain CSS, no Tailwind) |
 | `resources/boost/guidelines/core.blade.php` | Agent-facing usage guide shipped to apps |

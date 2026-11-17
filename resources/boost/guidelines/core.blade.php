@@ -6,7 +6,7 @@ In-app feedback for Filament 3.3, 4 and 5 panels. A floating **Feedback** button
 
 @verbatim
 <code-snippet name="Install" lang="bash">
-composer require carljanzell/filament-feedback:^0.4
+composer require carljanzell/filament-feedback:^0.6
 php artisan migrate
 php artisan filament:assets
 </code-snippet>
@@ -62,6 +62,7 @@ Pass the same `modules()` to every panel that registers the plugin; the inbox ne
 | `developerPosts(bool $enabled = true, bool\|Closure\|null $canRead = null, ?string $chatWebhook = null)` | on, all triagers read | The "For the developers" kind. `canRead` limits who sees those posts in the inbox; `chatWebhook` pings a separate space. |
 | `allowUnsend(team: bool\|Closure, authors: bool\|Closure)` | team `true`, authors `false` | Who may unsend their own replies. Set on the panel each side works from. |
 | `screenshots(bool $enabled = true, ?string $disk = null)` | on, `config('filesystems.default')` | Screenshots field in the sheet (max 3, 5 MB, png/jpeg/webp/gif). Stored privately under `feedback-screenshots/` on that disk, recorded as `[{disk, path}]` in `feedback_posts.screenshots`, served by the panel route `filament.{panel}.feedback.screenshot` to the author and triagers only. Set it on the button's panel. |
+| `suggestions(bool\|Closure $enabled = true)` | off | Suggested replies in the inbox, triagers only: a tool drafts, a triager sends (all safe ones at once, or edit-and-Save, or discard). Set it on the inbox's panel. |
 | `notifyAuthorUsing(Closure)` | Filament database notification | Replaces the "team replied" notification. Gets `$post`, `$reply`, `$author`, `$url`. |
 | `launcherAttributes(array)` | `[]` | Extra HTML attributes on the button wrapper. |
 | `impersonateUsing(?Closure $callback, bool\|Closure $can = true)` | off | "View as" on an inbox thread: sign in as the author and open the page they wrote from. The callback does the impersonating with the app's own package (no dependency here), gets `$author`, `$post`, `$url` (on this app and still routed, else null: fall back to their home) and `$guard`, and returns a redirect, or false. `$can` gets `$author`; triagers only. |
@@ -77,11 +78,12 @@ Pass the same `modules()` to every panel that registers the plugin; the inbox ne
 - **View as the author (impersonate):** `impersonateUsing()` with the app's impersonation package, e.g. stechstudio/filament-impersonate: `fn (Model $author, ?string $url, string $guard) => Impersonate::make()->guard($guard)->redirectTo($url ?? '/')->impersonate($author)`. Don't add an impersonation dependency to the package.
 - **Stats on a dashboard:** add `CarlJanzell\FilamentFeedback\Widgets\FeedbackStats` to the panel's widgets. On the inbox only triagers see it; elsewhere the host page decides.
 - **Link to a thread or the inbox from outside the app:** `FilamentFeedbackPlugin::threadUrl($post->panel, $post->id)`, `FilamentFeedbackPlugin::inboxUrl()`.
+- **Draft replies for triagers (suggested replies):** turn on `suggestions()`, then `php artisan feedback:export --open` (JSON of posts waiting on the team, no author names, plus `recent_outcomes`: how earlier drafts were sent or edited), write `{"version": 1, "drafted_by": "…", "suggestions": [{"post_id", "for_reply_id", "reply", "status", "confidence", "note", "sources"}]}` and load it with `php artisan feedback:suggest file.json [--dry-run]` or the inbox's **Import suggestions**. `reply` null = status only; `for_reply_id` = the post's latest reply id in the export (a newer reply makes the draft stale); `confidence` `high|medium|low`; `note` is for triagers only. Never send replies from code to skip the triager; `CarlJanzell\FilamentFeedback\Actions\SendSuggestion` is what the inbox calls.
 - **Read the plugin's config at runtime:** `FilamentFeedbackPlugin::get()` (current panel).
 
 ### Data
 
-Tables `feedback_posts`, `feedback_replies`, `feedback_reactions`, created by the package's own migrations (loaded automatically, nothing to publish). Authors are polymorphic (`author_type`/`author_id`), so any authenticatable model works, UUID keys included.
+Tables `feedback_posts`, `feedback_replies`, `feedback_reactions`, `feedback_suggestions`, created by the package's own migrations (loaded automatically, nothing to publish). Authors are polymorphic (`author_type`/`author_id`), so any authenticatable model works, UUID keys included.
 
 @verbatim
 <code-snippet name="Querying feedback" lang="php">
@@ -98,7 +100,7 @@ $post->update(['status' => FeedbackStatus::Done]);                 // logged to 
 </code-snippet>
 @endverbatim
 
-- Enums: `FeedbackKind` (`feedback|question|problem|developers`), `FeedbackStatus` (`new|seen|planned|done`), `FeedbackMood` (int `-2..2`, only on `feedback` posts), `Reaction` (`thanks|same|seen|fixed`).
+- Enums: `FeedbackKind` (`feedback|question|problem|developers`), `FeedbackStatus` (`new|seen|planned|done`), `FeedbackMood` (int `-2..2`, only on `feedback` posts), `Reaction` (`thanks|same|seen|fixed`), `SuggestionConfidence` (`high|medium|low`), `SuggestionOutcome` (`pending|sent_as_is|sent_edited|discarded|superseded`).
 - `FeedbackPost` columns worth knowing: `panel` (panel id it was written on), `modules` (JSON slugs or null), `context` (JSON: `url`, `route`, `user_agent`, `app_version` from `config('app.version')`), `status_log`, `fix_confirmed`.
 
 ### Don't

@@ -33,6 +33,7 @@ Don't relitigate these in a new session. Change them only on purpose.
 | **Private by default.** | A post is seen by its author and the triagers only. A public board with "me too" is a per-app option for later (v0.3). |
 | **Google is optional, in tiers.** | Tier 1, a Chat webhook ping, ships in v0.1. Tier 2, a two-way Chat bridge, needs Workspace admin approval and a service-account key, so it's built only if a team asks. |
 | **One codebase for Filament 3.3, 4 and 5.** | 8 UPLB apps run on 3, 3 on 4 and 10 on 5. Same rules as `filament-insights`. |
+| **A suggested reply is a draft; only a triager sends it.** | Drafters (Claude on a prod box, scripts) only write `feedback_suggestions` rows, which nobody outside the inbox sees. "Send suggested" skips low-confidence and stale drafts; replies go out as the triager who pressed it. Decided 2026-11-17. |
 | **No Tailwind in the package.** | Host builds never scan vendor views. Layout is plain CSS in `resources/css/feedback.css`, published by `filament:assets`. Colours come in through `Compat::color()`. |
 
 ## Cross-version rules (each one cost a debug round somewhere)
@@ -54,6 +55,9 @@ Don't relitigate these in a new session. Change them only on purpose.
   morph types passes SQLite and dies on MySQL's 3072-byte key limit, and MySQL can't roll
   back DDL, so the half-applied migration then fails every deploy ("column already exists").
   Every migration checks `hasColumn` / `hasTable` before it changes anything.
+- On Filament 3 a page method named like an action (`importSuggestions()` next to
+  `Action::make('importSuggestions')`) is called as that action's factory when the action isn't
+  registered. Don't name helper methods after actions.
 - On a Livewire update request no panel is "current". Resolve the user through
   `Filament::getPanel($this->panel)->auth()`.
 
@@ -122,7 +126,8 @@ To keep editing the package live on a laptop, use a local `composer.json` overri
 |---|---|
 | Screenshot upload on a post | ✅ v0.6.0: `screenshots()`, private disk + auth route, thumbnails in both threads. Browser/screen context still ⬜ |
 | "Fixed in release X" | Link a Done post to a host changelog entry; board before/after a release |
-| Saved replies for triagers | Picked from a menu in the inbox reply box |
+| Suggested replies (`suggestions()`) | ✅ v0.6.0: drafts from any tool (`feedback:export` → `feedback:suggest` or Import suggestions), Send suggested / edit-and-Save / Discard, outcomes kept for the drafter to learn from |
+| Saved replies for triagers | Picked from a menu in the inbox reply box. Can reuse the suggestions plumbing: promote a draft sent as is twice |
 | Rich text replies + @mentions for triagers | Copy Commentions' `SanitizeCommentHtml`, `ParseComment`, `suggestion.js` (MIT, keep notice) |
 | "Me too" on posts | Needs the public board. Reactions shipped in v0.1 |
 | Optional public board (`->public()`) | Others' posts readable and +1-able. Private stays the default |
@@ -154,3 +159,4 @@ To keep editing the package live on a laptop, use a local `composer.json` overri
 | 2026-11-10 | Run skill (Testbench dev host + Playwright driver). Redesign: quick sheet + My feedback page, nav icons, reactions, timeline, fix check, anime.js. Pushed to GitHub, tagged v0.1.0; TKS composer moved to the tag. Then v0.2.0: compact module picker + `#Module` mentions; v0.2.1 picker polish; v0.3.0: Enter to send, unsend, stats widget (filament-insights can place it); v0.4.0: "For the developers", kind boxes, mood scale, phone sheet. v0.4.1: the reactions migration broke TKS deploys on MySQL (key too long, then half-applied); made re-runnable, unique index dropped. |
 | 2026-11-11 | v0.5.4: the sidebar menu and the page get room at the bottom while the button shows, so it never sits on a last nav item or a form's Save. TKS dropped its "clear the sidebar" offset and shows an icon-only button in the collapsed rail. |
 | 2026-11-11 | v0.6.0: screenshots on a post (up to 3 images, private, served through a per-panel auth route to the author and triagers; SVG refused; tampered paths dropped; files deleted with the post). |
+| 2026-11-17 | v0.6.0 also brings suggested replies: `feedback_suggestions` table, `ImportSuggestions` / `SendSuggestion` / `RespondToPost` actions (Save in the inbox now goes through `RespondToPost`), `feedback:export` + `feedback:suggest`, and in the inbox a Draft column, Suggestion filter, pre-filled reply box with the drafter's note, Discard suggestion, Send suggested (N), a Send suggestions bulk action and Import suggestions. Built for UPLB-TKS's `/feedback-reply` skill. |

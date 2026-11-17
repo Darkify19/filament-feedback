@@ -52,6 +52,8 @@ class RunPanelProvider extends TestPanelProvider
             ]);
         }
 
+        $panel->getPlugin('feedback')->suggestions();
+
         return $panel
             ->pages([Filament\Pages\Dashboard::class]) // staff can't open the inbox; without a page they loop on /testing
             ->middleware([
@@ -112,7 +114,7 @@ Route::middleware('web')->get('/_as/{id}', function (string $id) {
 
 if (PHP_SAPI === 'cli') {
     if (($argv[1] ?? null) !== 'setup') {
-        exit("usage: php server.php setup [demo]\n");
+        exit("usage: php server.php setup [demo|suggestions]\n");
     }
 
     @unlink($db);
@@ -145,8 +147,8 @@ if (PHP_SAPI === 'cli') {
     User::create(['name' => 'Ben', 'email' => 'ben@example.com', 'password' => 'x', 'is_admin' => true]);
     echo "DB ready at {$db} (1 = Ana, staff; 2 = Ben, triager)\n";
 
-    if (($argv[2] ?? null) === 'demo') {
-        require __DIR__.'/demo.php';
+    if (in_array($argv[2] ?? null, ['demo', 'suggestions'], true)) {
+        require __DIR__."/{$argv[2]}.php";
     }
 
     return;

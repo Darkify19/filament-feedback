@@ -2,30 +2,43 @@
 
 namespace CarlJanzell\FilamentFeedback\Pages;
 
+use CarlJanzell\FilamentFeedback\Actions\ImportSuggestions;
+use CarlJanzell\FilamentFeedback\Actions\RespondToPost;
+use CarlJanzell\FilamentFeedback\Actions\SendSuggestion;
 use CarlJanzell\FilamentFeedback\Enums\FeedbackKind;
 use CarlJanzell\FilamentFeedback\Enums\FeedbackMood;
 use CarlJanzell\FilamentFeedback\Enums\FeedbackStatus;
 use CarlJanzell\FilamentFeedback\Enums\Reaction;
+use CarlJanzell\FilamentFeedback\Enums\SuggestionConfidence;
 use CarlJanzell\FilamentFeedback\FilamentFeedbackPlugin;
 use CarlJanzell\FilamentFeedback\Models\FeedbackPost;
 use CarlJanzell\FilamentFeedback\Models\FeedbackReply;
+use CarlJanzell\FilamentFeedback\Models\FeedbackSuggestion;
 use CarlJanzell\FilamentFeedback\Support\Compat;
 use CarlJanzell\FilamentFeedback\Widgets\FeedbackStats;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\IconPosition;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
+use LogicException;
 use Throwable;
 
 /**
@@ -37,6 +50,9 @@ class FeedbackInbox extends Page implements HasTable
     use InteractsWithTable;
 
     protected static ?string $slug = 'feedback';
+
+    /** @var array{send: int, low: int, stale: int}|null worked out once per request */
+    protected ?array $suggestionCounts = null;
 
     public static function canAccess(): bool
     {
@@ -87,9 +103,11 @@ class FeedbackInbox extends Page implements HasTable
     {
         $modules = FilamentFeedbackPlugin::get()->getModules();
         $icons = FilamentFeedbackPlugin::get()->getModuleIcons();
+        $suggestions = FilamentFeedbackPlugin::get()->hasSuggestions();
 
         return $table
-            ->query(FeedbackPost::query()->visibleToTeam()->with('author')->withCount('replies'))
+            ->query(FeedbackPost::query()->visibleToTeam()->with('author')->withCount('replies')
+                ->when($suggestions, fn (Builder $query) => $query->with('pendingSuggestion')->withMax('replies', 'id')))
             ->columns([
                 TextColumn::make('created_at')
                     ->label('Sent')
@@ -115,10 +133,17 @@ class FeedbackInbox extends Page implements HasTable
                     ->limit(110)
                     ->wrap()
                     ->searchable(),
+                // A sparkles icon after the count marks a suggested reply: bright when "Send suggested"
+                // would send it, grey when a person has to open it first. No column of its own: the
+                // message is the column that needs the room.
                 TextColumn::make('replies_count')
                     ->label('Replies')
                     ->numeric()
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->icon(fn (FeedbackPost $record): ?string => $suggestions && $record->pendingSuggestion ? 'heroicon-m-sparkles' : null)
+                    ->iconPosition(IconPosition::After)
+                    ->iconColor(fn (FeedbackPost $record): string => $suggestions && $this->suggestionOf($record)?->isSafeToSend() ? 'primary' : 'gray')
+                    ->tooltip(fn (FeedbackPost $record): ?string => $suggestions ? $this->suggestionTooltip($this->suggestionOf($record)) : null),
                 TextColumn::make('status')
                     ->badge(),
             ])
@@ -132,8 +157,18 @@ class FeedbackInbox extends Page implements HasTable
                     ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
                         ? $query->whereJsonContains('modules', $data['value'])
                         : $query),
+                TernaryFilter::make('suggestion')
+                    ->label('Suggestion')
+                    ->placeholder('All')
+                    ->trueLabel('Has one')
+                    ->falseLabel('None')
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->whereHas('suggestions', fn (Builder $suggestions) => $suggestions->pending()),
+                        false: fn (Builder $query): Builder => $query->whereDoesntHave('suggestions', fn (Builder $suggestions) => $suggestions->pending()),
+                    )
+                    ->visible($suggestions),
             ], layout: FiltersLayout::AboveContent)
-            ->filtersFormColumns(4)
+            ->filtersFormColumns($suggestions ? 5 : 4)
             ->actions([
                 Compat::tableAction('open')
                     ->label('Open')
@@ -148,21 +183,42 @@ class FeedbackInbox extends Page implements HasTable
                         'viewer' => Filament::auth()->user(),
                         'canUnsend' => FilamentFeedbackPlugin::get()->teamCanUnsend(),
                         'canImpersonate' => FilamentFeedbackPlugin::get()->canImpersonate($record->author),
+                        // Fresh, not the row's eager load: Discard suggestion re-renders this.
+                        'suggestion' => $suggestions ? $record->pendingSuggestion()->first()?->setRelation('post', $record) : null,
                     ]))
-                    ->fillForm(function (FeedbackPost $record): array {
+                    ->fillForm(function (FeedbackPost $record) use ($suggestions): array {
                         // Opening a new post is reading it.
                         if ($record->status === FeedbackStatus::New) {
                             $record->update(['status' => FeedbackStatus::Seen]);
                         }
 
-                        return ['status' => $record->status->value, 'reply' => null];
+                        $suggestion = $suggestions ? $record->pendingSuggestion : null;
+
+                        return [
+                            'suggestion' => $suggestion?->getKey(),
+                            'reply' => $suggestion?->body,
+                            'status' => ($suggestion?->status ?? $record->status)->value,
+                        ];
                     })
-                    ->form([
+                    ->form(fn (FeedbackPost $record): array => [
+                        // Which suggestion the box was filled from, so Save records how it went out.
+                        Hidden::make('suggestion'),
                         Textarea::make('reply')
                             ->label('Reply')
                             ->helperText('The author sees this on My feedback and gets a notification.')
                             ->rows(4)
-                            ->maxLength(5000),
+                            ->maxLength(ImportSuggestions::MAX_REPLY_LENGTH)
+                            ->hintAction(Compat::formAction('discardSuggestion')
+                                ->label('Discard suggestion')
+                                ->icon('heroicon-m-x-mark')
+                                ->color('gray')
+                                ->visible(fn ($get): bool => filled($get('suggestion')))
+                                ->action(function ($get, $set) use ($record): void {
+                                    $record->suggestions()->pending()->find($get('suggestion'))?->discard(Filament::auth()->user());
+                                    $set('suggestion', null);
+                                    $set('reply', null);
+                                    $set('status', $record->status->value);
+                                })),
                         ToggleButtons::make('status')
                             ->options(FeedbackStatus::class)
                             ->inline()
@@ -171,6 +227,20 @@ class FeedbackInbox extends Page implements HasTable
                     ->modalSubmitActionLabel('Save')
                     ->action(fn (array $data, FeedbackPost $record) => $this->respond($record, $data)),
             ])
+            ->bulkActions($suggestions ? [
+                Compat::bulkAction('sendSuggestions')
+                    ->label('Send suggestions')
+                    ->icon('heroicon-m-paper-airplane')
+                    ->requiresConfirmation()
+                    ->modalHeading('Send the suggested replies?')
+                    ->modalDescription('Each selected post that has a suggestion gets it, sent as you, low-confidence ones too. A suggestion whose thread changed after it was drafted is skipped: open that post instead.')
+                    ->modalSubmitActionLabel('Send')
+                    ->action(fn (Collection $records) => $this->sendDrafts(
+                        $this->pendingSuggestions()->whereIn('feedback_post_id', $records->modelKeys()),
+                        includeLow: true,
+                    ))
+                    ->deselectRecordsAfterCompletion(),
+            ] : [])
             ->recordAction('open')
             ->defaultSort('created_at', 'desc')
             ->striped()
@@ -181,20 +251,212 @@ class FeedbackInbox extends Page implements HasTable
     }
 
     /**
-     * @param  array{reply?: string|null, status: FeedbackStatus|string}  $data
+     * Save in the Open slide-over. A box filled from a suggestion sends that suggestion, as is or
+     * edited, so it records how it went out.
+     *
+     * @param  array{reply?: string|null, status: FeedbackStatus|string, suggestion?: int|string|null}  $data
      */
     public function respond(FeedbackPost $post, array $data): void
     {
-        $body = trim((string) ($data['reply'] ?? ''));
+        $user = Filament::auth()->user();
+        // Filament 4+ hands enum options back as enums, Filament 3 as their values.
+        $status = $data['status'] instanceof FeedbackStatus ? $data['status'] : FeedbackStatus::from($data['status']);
+        $suggestion = filled($data['suggestion'] ?? null) && FilamentFeedbackPlugin::get()->hasSuggestions()
+            ? $post->suggestions()->pending()->find($data['suggestion'])
+            : null;
 
-        if ($body !== '') {
-            $this->notifyAuthor($post, $post->addReply(Filament::auth()->user(), $body, fromTeam: true));
+        try {
+            $reply = $suggestion
+                ? app(SendSuggestion::class)->execute($suggestion, $user, (string) ($data['reply'] ?? ''), $status)
+                : app(RespondToPost::class)->execute($post, $user, $data['reply'] ?? null, $status);
+        } catch (LogicException) {
+            Notification::make()->title('Someone else already sent or discarded this suggestion')->body('Nothing was sent. Open the post again to see where it stands.')->warning()->send();
+
+            return;
         }
 
-        // Filament 4+ hands enum options back as enums, Filament 3 as their values.
-        $post->update(['status' => $data['status'] instanceof FeedbackStatus ? $data['status'] : FeedbackStatus::from($data['status'])]);
+        Notification::make()->title($reply ? 'Reply sent' : 'Saved')->success()->send();
+    }
 
-        Notification::make()->title($body !== '' ? 'Reply sent' : 'Saved')->success()->send();
+    /**
+     * @return array<Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        if (! FilamentFeedbackPlugin::get()->hasSuggestions()) {
+            return [];
+        }
+
+        return [
+            Action::make('sendSuggested')
+                ->label(fn (): string => 'Send suggested ('.$this->suggestionCounts()['send'].')')
+                ->icon('heroicon-m-paper-airplane')
+                ->visible(fn (): bool => $this->suggestionCounts()['send'] > 0)
+                ->requiresConfirmation()
+                ->modalIcon('heroicon-o-paper-airplane')
+                ->modalHeading(fn (): string => 'Send '.$this->suggestionCounts()['send'].' suggested '.Str::plural('reply', $this->suggestionCounts()['send']).'?')
+                ->modalDescription(fn (): string => $this->sendAllDescription())
+                ->modalSubmitActionLabel('Send')
+                ->action(fn () => $this->sendDrafts($this->pendingSuggestions(), includeLow: false)),
+            Action::make('importSuggestions')
+                ->label('Import suggestions')
+                ->icon('heroicon-m-arrow-down-tray')
+                ->color('gray')
+                ->modalHeading('Import suggested replies')
+                ->modalDescription('Paste the suggestions JSON. Nothing reaches anyone: each one waits on its post until a triager sends it. A new suggestion for a post replaces the older one.')
+                ->form([
+                    Textarea::make('json')
+                        ->label('Suggestions (JSON)')
+                        ->placeholder('{"version": 1, "suggestions": [{"post_id": 12, "reply": "…", "status": "done", "confidence": "high"}]}')
+                        ->rows(12)
+                        ->required(),
+                    Toggle::make('dry_run')
+                        ->label('Dry run')
+                        ->helperText('Check the JSON and show what would happen, without saving.')
+                        ->default(true),
+                ])
+                ->modalSubmitActionLabel('Import')
+                ->action(function (array $data, $action): void {
+                    $this->importJson($data['json'], (bool) $data['dry_run']);
+
+                    // Keep the JSON on screen after a dry run, so turning it off and importing is one step.
+                    if ($data['dry_run']) {
+                        $action->halt();
+                    }
+                }),
+        ];
+    }
+
+    protected function importJson(string $json, bool $dryRun): void
+    {
+        $payload = json_decode($json, true);
+
+        try {
+            throw_unless(is_array($payload), InvalidArgumentException::class, 'Not valid JSON: '.json_last_error_msg().'.');
+            $report = app(ImportSuggestions::class)->execute($payload, $dryRun);
+        } catch (InvalidArgumentException $exception) {
+            Notification::make()->title('Nothing imported')->body($exception->getMessage())->danger()->send();
+
+            return;
+        }
+
+        $this->suggestionCounts = null;
+        $skipped = collect($report['skipped'])
+            ->map(fn (array $skip): string => 'Post '.(is_scalar($skip['post_id']) ? $skip['post_id'] : '?').': '.$skip['reason'])
+            ->implode("\n");
+
+        Notification::make()
+            ->title(($dryRun ? 'Dry run: would add ' : 'Added ').$report['created'].' '.Str::plural('suggestion', $report['created'])
+                .($report['superseded'] ? ', replacing '.$report['superseded'] : '')
+                .($report['skipped'] ? ', skipping '.count($report['skipped']) : ''))
+            ->body($skipped !== '' ? $skipped : ($dryRun ? 'Turn off Dry run to import.' : null))
+            ->status($report['skipped'] ? 'warning' : 'success')
+            ->persistent()
+            ->send();
+    }
+
+    /**
+     * Pending suggestions on posts this triager may read, with what isStale() needs loaded.
+     *
+     * @return Builder<FeedbackSuggestion>
+     */
+    protected function pendingSuggestions(): Builder
+    {
+        return FeedbackSuggestion::query()
+            ->pending()
+            ->whereHas('post', fn (Builder $posts) => $posts->visibleToTeam())
+            ->with(['post' => fn ($posts) => $posts->withMax('replies', 'id')]);
+    }
+
+    /**
+     * What "Send suggested" would do now: how many go out, and how many it skips and why.
+     *
+     * @return array{send: int, low: int, stale: int}
+     */
+    protected function suggestionCounts(): array
+    {
+        return $this->suggestionCounts ??= $this->pendingSuggestions()->get()->reduce(function (array $counts, FeedbackSuggestion $suggestion): array {
+            $counts[match (true) {
+                $suggestion->isStale() => 'stale',
+                $suggestion->confidence === SuggestionConfidence::Low => 'low',
+                default => 'send',
+            }]++;
+
+            return $counts;
+        }, ['send' => 0, 'low' => 0, 'stale' => 0]);
+    }
+
+    protected function sendAllDescription(): string
+    {
+        $counts = $this->suggestionCounts();
+        $held = array_filter([
+            $counts['low'] ? $counts['low'].' low-confidence' : null,
+            $counts['stale'] ? $counts['stale'].' where the thread changed after drafting' : null,
+        ]);
+
+        return 'Replies go out as you, and each author is notified.'
+            .($held ? ' Skipped, for you to open first: '.implode(' and ', $held).'.' : '');
+    }
+
+    /**
+     * Sends each suggestion as the current triager, one at a time, so one failure doesn't stop the rest.
+     *
+     * @param  Builder<FeedbackSuggestion>  $suggestions
+     */
+    protected function sendDrafts(Builder $suggestions, bool $includeLow): void
+    {
+        $user = Filament::auth()->user();
+        $sent = 0;
+        $skipped = ['low confidence' => 0, 'thread changed' => 0, 'failed' => 0];
+
+        foreach ($suggestions->get() as $suggestion) {
+            if ($suggestion->isStale()) {
+                $skipped['thread changed']++;
+
+                continue;
+            }
+
+            if (! $includeLow && $suggestion->confidence === SuggestionConfidence::Low) {
+                $skipped['low confidence']++;
+
+                continue;
+            }
+
+            try {
+                app(SendSuggestion::class)->execute($suggestion, $user);
+                $sent++;
+            } catch (Throwable $exception) {
+                report($exception);
+                $skipped['failed']++;
+            }
+        }
+
+        $this->suggestionCounts = null;
+        $skippedCount = array_sum($skipped);
+        $reasons = collect($skipped)->filter()->map(fn (int $count, string $reason): string => "{$count} {$reason}")->implode(', ');
+
+        Notification::make()
+            ->title("Sent {$sent}".($skippedCount ? " · skipped {$skippedCount} ({$reasons})" : ''))
+            ->status($skipped['failed'] ? 'warning' : 'success')
+            ->send();
+    }
+
+    /**
+     * The row's pending suggestion, with its post set so isStale() reads the row's loaded max reply id.
+     */
+    protected function suggestionOf(FeedbackPost $record): ?FeedbackSuggestion
+    {
+        return $record->pendingSuggestion?->setRelation('post', $record);
+    }
+
+    protected function suggestionTooltip(?FeedbackSuggestion $suggestion): ?string
+    {
+        if ($suggestion === null) {
+            return null;
+        }
+
+        return 'Suggested reply waiting · '.$suggestion->confidence->getLabel()
+            .($suggestion->isStale() ? ' · thread changed since' : '');
     }
 
     /**
@@ -263,38 +525,6 @@ class FeedbackInbox extends Page implements HasTable
     protected function getHeaderWidgets(): array
     {
         return [FeedbackStats::class];
-    }
-
-    protected function notifyAuthor(FeedbackPost $post, FeedbackReply $reply): void
-    {
-        $author = $post->author;
-
-        if (! $author || ! method_exists($author, 'notify')) {
-            return;
-        }
-
-        // The thread on My feedback, on the panel the post was written on.
-        $url = FilamentFeedbackPlugin::threadUrl($post->panel, $post->getKey());
-
-        // The reply is saved either way; a failed notification must not undo that for the triager.
-        try {
-            $plugin = FilamentFeedbackPlugin::get();
-
-            if ($custom = $plugin->getNotifyAuthorUsing()) {
-                $plugin->evaluate($custom, ['post' => $post, 'reply' => $reply, 'author' => $author, 'url' => $url]);
-
-                return;
-            }
-
-            Notification::make()
-                ->title('The team replied to your '.Str::lower($post->kind->shortLabel()))
-                ->body(Str::limit(Str::squish($reply->body), 140))
-                ->icon('heroicon-o-chat-bubble-left-right')
-                ->actions($url ? [Compat::notificationAction('read')->label('Read the reply')->url($url)] : [])
-                ->sendToDatabase($author);
-        } catch (Throwable $exception) {
-            report($exception);
-        }
     }
 
     /**
