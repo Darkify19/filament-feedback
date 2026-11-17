@@ -58,6 +58,9 @@ Don't relitigate these in a new session. Change them only on purpose.
 - On Filament 3 a page method named like an action (`importSuggestions()` next to
   `Action::make('importSuggestions')`) is called as that action's factory when the action isn't
   registered. Don't name helper methods after actions.
+- In SPA mode (Filament 3) a table loads only once it scrolls into view, and a table page's
+  action modals render inside it. A page header action on a page whose table starts below the
+  fold opens nothing. Put actions for a table page in `$table->headerActions()`.
 - On a Livewire update request no panel is "current". Resolve the user through
   `Filament::getPanel($this->panel)->auth()`.
 
@@ -160,3 +163,4 @@ To keep editing the package live on a laptop, use a local `composer.json` overri
 | 2026-11-11 | v0.5.4: the sidebar menu and the page get room at the bottom while the button shows, so it never sits on a last nav item or a form's Save. TKS dropped its "clear the sidebar" offset and shows an icon-only button in the collapsed rail. |
 | 2026-11-11 | v0.6.0: screenshots on a post (up to 3 images, private, served through a per-panel auth route to the author and triagers; SVG refused; tampered paths dropped; files deleted with the post). |
 | 2026-11-17 | v0.6.0 also brings suggested replies: `feedback_suggestions` table, `ImportSuggestions` / `SendSuggestion` / `RespondToPost` actions (Save in the inbox now goes through `RespondToPost`), `feedback:export` + `feedback:suggest`, and in the inbox a Draft column, Suggestion filter, pre-filled reply box with the drafter's note, Discard suggestion, Send suggested (N), a Send suggestions bulk action and Import suggestions. Built for UPLB-TKS's `/feedback-reply` skill. |
+| 2026-11-17 | v0.6.1: Send suggested and Import suggestions moved from the page header to the table header. In UPLB-TKS (SPA mode, mood board above the table) the page actions' modals never opened. |

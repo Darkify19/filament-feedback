@@ -95,8 +95,8 @@ it('sends the safe suggestions as the triager and skips low-confidence and stale
     $this->travel(1)->minute();
 
     Livewire::test(FeedbackInbox::class)
-        ->assertActionVisible('sendSuggested')
-        ->callAction('sendSuggested')
+        ->assertTableActionVisible('sendSuggested')
+        ->callTableAction('sendSuggested')
         ->assertNotified('Sent 2 · skipped 2 (1 low confidence, 1 thread changed)');
 
     $sent = $safe->suggestions()->sole();
@@ -167,8 +167,8 @@ it('shows no suggestion UI while suggestions are off', function (): void {
     suggest($post);
 
     Livewire::test(FeedbackInbox::class)
-        ->assertActionDoesNotExist('sendSuggested')
-        ->assertActionDoesNotExist('importSuggestions')
+        ->assertTableActionDoesNotExist('sendSuggested')
+        ->assertTableActionDoesNotExist('importSuggestions')
         ->mountTableAction('open', $post)
         ->assertTableActionDataSet(['reply' => null, 'suggestion' => null]);
 

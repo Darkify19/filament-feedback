@@ -16,7 +16,6 @@ use CarlJanzell\FilamentFeedback\Models\FeedbackReply;
 use CarlJanzell\FilamentFeedback\Models\FeedbackSuggestion;
 use CarlJanzell\FilamentFeedback\Support\Compat;
 use CarlJanzell\FilamentFeedback\Widgets\FeedbackStats;
-use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Textarea;
@@ -227,6 +226,7 @@ class FeedbackInbox extends Page implements HasTable
                     ->modalSubmitActionLabel('Save')
                     ->action(fn (array $data, FeedbackPost $record) => $this->respond($record, $data)),
             ])
+            ->headerActions($suggestions ? $this->suggestionActions() : [])
             ->bulkActions($suggestions ? [
                 Compat::bulkAction('sendSuggestions')
                     ->label('Send suggestions')
@@ -279,18 +279,19 @@ class FeedbackInbox extends Page implements HasTable
     }
 
     /**
-     * @return array<Action>
+     * In the table's header, not the page's: on Filament 3 in SPA mode a table below the fold
+     * loads when it scrolls into view, and the page's action modals live inside it, so a page
+     * header action opened before that shows nothing.
+     *
+     * @return array<mixed>
      */
-    protected function getHeaderActions(): array
+    protected function suggestionActions(): array
     {
-        if (! FilamentFeedbackPlugin::get()->hasSuggestions()) {
-            return [];
-        }
-
         return [
-            Action::make('sendSuggested')
+            Compat::tableAction('sendSuggested')
                 ->label(fn (): string => 'Send suggested ('.$this->suggestionCounts()['send'].')')
                 ->icon('heroicon-m-paper-airplane')
+                ->button()
                 ->visible(fn (): bool => $this->suggestionCounts()['send'] > 0)
                 ->requiresConfirmation()
                 ->modalIcon('heroicon-o-paper-airplane')
@@ -298,9 +299,10 @@ class FeedbackInbox extends Page implements HasTable
                 ->modalDescription(fn (): string => $this->sendAllDescription())
                 ->modalSubmitActionLabel('Send')
                 ->action(fn () => $this->sendDrafts($this->pendingSuggestions(), includeLow: false)),
-            Action::make('importSuggestions')
+            Compat::tableAction('importSuggestions')
                 ->label('Import suggestions')
                 ->icon('heroicon-m-arrow-down-tray')
+                ->button()
                 ->color('gray')
                 ->modalHeading('Import suggested replies')
                 ->modalDescription('Paste the suggestions JSON. Nothing reaches anyone: each one waits on its post until a triager sends it. A new suggestion for a post replaces the older one.')
