@@ -10,6 +10,7 @@ use Filament\Facades\Filament;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
+use Livewire\Attributes\On;
 
 /**
  * How feedback is going over the last 30 days: volume, how fast the team answers, what got
@@ -20,6 +21,9 @@ class FeedbackStats extends StatsOverviewWidget
 {
     public const DAYS = 30;
 
+    /** Dispatched by the inbox after a reply or a status change. */
+    public const REFRESH = 'filament-feedback-changed';
+
     public static function canView(): bool
     {
         // Elsewhere (an insights dashboard on another panel) the host decides who sees it.
@@ -27,6 +31,12 @@ class FeedbackStats extends StatsOverviewWidget
 
         return ! $panel?->hasPlugin('feedback') || $panel->getPlugin('feedback')->isTriager();
     }
+
+    /**
+     * Re-renders with fresh numbers when the inbox replies or sets a status.
+     */
+    #[On(self::REFRESH)]
+    public function refreshStats(): void {}
 
     protected function getPollingInterval(): ?string
     {

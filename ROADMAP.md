@@ -61,6 +61,8 @@ Don't relitigate these in a new session. Change them only on purpose.
 - In SPA mode (Filament 3) a table loads only once it scrolls into view, and a table page's
   action modals render inside it. A page header action on a page whose table starts below the
   fold opens nothing. Put actions for a table page in `$table->headerActions()`.
+- A Livewire `@script` runs through Alpine's evaluator: start it with `if (…)` (or an
+  expression) and keep comments outside the `<script>` tag, or it dies with "Unexpected token".
 - On a Livewire update request no panel is "current". Resolve the user through
   `Filament::getPanel($this->panel)->auth()`.
 
@@ -129,7 +131,7 @@ To keep editing the package live on a laptop, use a local `composer.json` overri
 |---|---|
 | Screenshot upload on a post | ✅ v0.6.0: `screenshots()`, private disk + auth route, thumbnails in both threads. Browser/screen context still ⬜ |
 | "Fixed in release X" | Link a Done post to a host changelog entry; board before/after a release |
-| Suggested replies (`suggestions()`) | ✅ v0.6.0: drafts from any tool (`feedback:export` → `feedback:suggest` or Import suggestions), Send suggested / edit-and-Save / Discard, outcomes kept for the drafter to learn from |
+| Suggested replies (`suggestions()`) | ✅ v0.6.0: drafts from any tool (`feedback:export` → `feedback:suggest`), Send suggested / edit-and-Save / Discard, outcomes kept for the drafter to learn from |
 | Saved replies for triagers | Picked from a menu in the inbox reply box. Can reuse the suggestions plumbing: promote a draft sent as is twice |
 | Rich text replies + @mentions for triagers | Copy Commentions' `SanitizeCommentHtml`, `ParseComment`, `suggestion.js` (MIT, keep notice) |
 | "Me too" on posts | Needs the public board. Reactions shipped in v0.1 |
@@ -164,3 +166,4 @@ To keep editing the package live on a laptop, use a local `composer.json` overri
 | 2026-11-11 | v0.6.0: screenshots on a post (up to 3 images, private, served through a per-panel auth route to the author and triagers; SVG refused; tampered paths dropped; files deleted with the post). |
 | 2026-11-17 | v0.6.0 also brings suggested replies: `feedback_suggestions` table, `ImportSuggestions` / `SendSuggestion` / `RespondToPost` actions (Save in the inbox now goes through `RespondToPost`), `feedback:export` + `feedback:suggest`, and in the inbox a Draft column, Suggestion filter, pre-filled reply box with the drafter's note, Discard suggestion, Send suggested (N), a Send suggestions bulk action and Import suggestions. Built for UPLB-TKS's `/feedback-reply` skill. |
 | 2026-11-17 | v0.6.1: Send suggested and Import suggestions moved from the page header to the table header. In UPLB-TKS (SPA mode, mood board above the table) the page actions' modals never opened. |
+| 2026-11-17 | v0.6.2: Import suggestions dropped from the inbox (drafts arrive through `feedback:suggest`; triagers send them in bulk). The stats on top refresh after a reply or Send suggested. On Filament 3 in SPA mode, a poll or action before the table scrolls into view no longer breaks it (the inbox keeps the table's `x-ignore` until it loads). |

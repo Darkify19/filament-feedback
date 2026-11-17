@@ -475,8 +475,8 @@ class FilamentFeedbackPlugin implements Plugin
     }
 
     /**
-     * Suggested replies in the inbox: drafts written by a tool (`feedback:suggest`, or Import
-     * suggestions) that a triager sends as is, edits, or discards. Nothing reaches an author until
+     * Suggested replies in the inbox: drafts a tool loads with `feedback:suggest`, which a triager
+     * sends as is (one by one or all at once), edits, or discards. Nothing reaches an author until
      * a triager sends it. Set it on the inbox's panel; triagers only either way.
      */
     public function suggestions(bool|Closure $enabled = true): static

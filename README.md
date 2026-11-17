@@ -191,8 +191,7 @@ saved replies later. A suggestion is a draft. It never reaches the author by its
    actually sent, and how it ended), so a drafter can learn how triagers edit. Also
    `--post=ID` (repeatable) and `--since=DATE`.
 2. The tool writes a suggestions file and loads it with `php artisan feedback:suggest file.json`
-   (`--dry-run` to check first), or a triager pastes it into **Import suggestions** on the
-   inbox (Dry run is on by default).
+   (`--dry-run` to check first).
 3. In the inbox, a sparkles icon marks rows with a suggestion. **Send suggested (N)** sends
    every suggestion that is safe to send, as the triager who pressed it. Opening a row fills
    the reply box and status from the suggestion, with the drafter's note above it: edit and

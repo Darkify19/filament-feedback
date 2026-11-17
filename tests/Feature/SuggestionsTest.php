@@ -7,6 +7,7 @@ use CarlJanzell\FilamentFeedback\FilamentFeedbackPlugin;
 use CarlJanzell\FilamentFeedback\Models\FeedbackPost;
 use CarlJanzell\FilamentFeedback\Models\FeedbackSuggestion;
 use CarlJanzell\FilamentFeedback\Pages\FeedbackInbox;
+use CarlJanzell\FilamentFeedback\Widgets\FeedbackStats;
 use Illuminate\Support\Facades\Artisan;
 use Livewire\Livewire;
 
@@ -97,7 +98,8 @@ it('sends the safe suggestions as the triager and skips low-confidence and stale
     Livewire::test(FeedbackInbox::class)
         ->assertTableActionVisible('sendSuggested')
         ->callTableAction('sendSuggested')
-        ->assertNotified('Sent 2 · skipped 2 (1 low confidence, 1 thread changed)');
+        ->assertNotified('Sent 2 · skipped 2 (1 low confidence, 1 thread changed)')
+        ->assertDispatched(FeedbackStats::REFRESH);
 
     $sent = $safe->suggestions()->sole();
 
@@ -168,7 +170,6 @@ it('shows no suggestion UI while suggestions are off', function (): void {
 
     Livewire::test(FeedbackInbox::class)
         ->assertTableActionDoesNotExist('sendSuggested')
-        ->assertTableActionDoesNotExist('importSuggestions')
         ->mountTableAction('open', $post)
         ->assertTableActionDataSet(['reply' => null, 'suggestion' => null]);
 

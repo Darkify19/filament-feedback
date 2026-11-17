@@ -19,7 +19,6 @@ use CarlJanzell\FilamentFeedback\Widgets\FeedbackStats;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -36,7 +35,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use InvalidArgumentException;
 use LogicException;
 use Throwable;
 
@@ -217,6 +215,7 @@ class FeedbackInbox extends Page implements HasTable
                                     $set('suggestion', null);
                                     $set('reply', null);
                                     $set('status', $record->status->value);
+                                    $this->suggestionCounts = null;
                                 })),
                         ToggleButtons::make('status')
                             ->options(FeedbackStatus::class)
@@ -226,7 +225,7 @@ class FeedbackInbox extends Page implements HasTable
                     ->modalSubmitActionLabel('Save')
                     ->action(fn (array $data, FeedbackPost $record) => $this->respond($record, $data)),
             ])
-            ->headerActions($suggestions ? $this->suggestionActions() : [])
+            ->headerActions($suggestions ? [$this->sendSuggestedAction()] : [])
             ->bulkActions($suggestions ? [
                 Compat::bulkAction('sendSuggestions')
                     ->label('Send suggestions')
@@ -276,85 +275,36 @@ class FeedbackInbox extends Page implements HasTable
         }
 
         Notification::make()->title($reply ? 'Reply sent' : 'Saved')->success()->send();
+        $this->statsChanged();
+    }
+
+    /**
+     * The stats on top are their own component: tell them a reply or a status changed.
+     */
+    protected function statsChanged(): void
+    {
+        $this->suggestionCounts = null;
+        $this->dispatch(FeedbackStats::REFRESH);
     }
 
     /**
      * In the table's header, not the page's: on Filament 3 in SPA mode a table below the fold
      * loads when it scrolls into view, and the page's action modals live inside it, so a page
      * header action opened before that shows nothing.
-     *
-     * @return array<mixed>
      */
-    protected function suggestionActions(): array
+    protected function sendSuggestedAction(): mixed
     {
-        return [
-            Compat::tableAction('sendSuggested')
-                ->label(fn (): string => 'Send suggested ('.$this->suggestionCounts()['send'].')')
-                ->icon('heroicon-m-paper-airplane')
-                ->button()
-                ->visible(fn (): bool => $this->suggestionCounts()['send'] > 0)
-                ->requiresConfirmation()
-                ->modalIcon('heroicon-o-paper-airplane')
-                ->modalHeading(fn (): string => 'Send '.$this->suggestionCounts()['send'].' suggested '.Str::plural('reply', $this->suggestionCounts()['send']).'?')
-                ->modalDescription(fn (): string => $this->sendAllDescription())
-                ->modalSubmitActionLabel('Send')
-                ->action(fn () => $this->sendDrafts($this->pendingSuggestions(), includeLow: false)),
-            Compat::tableAction('importSuggestions')
-                ->label('Import suggestions')
-                ->icon('heroicon-m-arrow-down-tray')
-                ->button()
-                ->color('gray')
-                ->modalHeading('Import suggested replies')
-                ->modalDescription('Paste the suggestions JSON. Nothing reaches anyone: each one waits on its post until a triager sends it. A new suggestion for a post replaces the older one.')
-                ->form([
-                    Textarea::make('json')
-                        ->label('Suggestions (JSON)')
-                        ->placeholder('{"version": 1, "suggestions": [{"post_id": 12, "reply": "…", "status": "done", "confidence": "high"}]}')
-                        ->rows(12)
-                        ->required(),
-                    Toggle::make('dry_run')
-                        ->label('Dry run')
-                        ->helperText('Check the JSON and show what would happen, without saving.')
-                        ->default(true),
-                ])
-                ->modalSubmitActionLabel('Import')
-                ->action(function (array $data, $action): void {
-                    $this->importJson($data['json'], (bool) $data['dry_run']);
-
-                    // Keep the JSON on screen after a dry run, so turning it off and importing is one step.
-                    if ($data['dry_run']) {
-                        $action->halt();
-                    }
-                }),
-        ];
-    }
-
-    protected function importJson(string $json, bool $dryRun): void
-    {
-        $payload = json_decode($json, true);
-
-        try {
-            throw_unless(is_array($payload), InvalidArgumentException::class, 'Not valid JSON: '.json_last_error_msg().'.');
-            $report = app(ImportSuggestions::class)->execute($payload, $dryRun);
-        } catch (InvalidArgumentException $exception) {
-            Notification::make()->title('Nothing imported')->body($exception->getMessage())->danger()->send();
-
-            return;
-        }
-
-        $this->suggestionCounts = null;
-        $skipped = collect($report['skipped'])
-            ->map(fn (array $skip): string => 'Post '.(is_scalar($skip['post_id']) ? $skip['post_id'] : '?').': '.$skip['reason'])
-            ->implode("\n");
-
-        Notification::make()
-            ->title(($dryRun ? 'Dry run: would add ' : 'Added ').$report['created'].' '.Str::plural('suggestion', $report['created'])
-                .($report['superseded'] ? ', replacing '.$report['superseded'] : '')
-                .($report['skipped'] ? ', skipping '.count($report['skipped']) : ''))
-            ->body($skipped !== '' ? $skipped : ($dryRun ? 'Turn off Dry run to import.' : null))
-            ->status($report['skipped'] ? 'warning' : 'success')
-            ->persistent()
-            ->send();
+        return Compat::tableAction('sendSuggested')
+            ->label(fn (): string => 'Send suggested ('.$this->suggestionCounts()['send'].')')
+            ->icon('heroicon-m-paper-airplane')
+            ->button()
+            ->visible(fn (): bool => $this->suggestionCounts()['send'] > 0)
+            ->requiresConfirmation()
+            ->modalIcon('heroicon-o-paper-airplane')
+            ->modalHeading(fn (): string => 'Send '.$this->suggestionCounts()['send'].' suggested '.Str::plural('reply', $this->suggestionCounts()['send']).'?')
+            ->modalDescription(fn (): string => $this->sendAllDescription())
+            ->modalSubmitActionLabel('Send')
+            ->action(fn () => $this->sendDrafts($this->pendingSuggestions(), includeLow: false));
     }
 
     /**
@@ -433,7 +383,7 @@ class FeedbackInbox extends Page implements HasTable
             }
         }
 
-        $this->suggestionCounts = null;
+        $this->statsChanged();
         $skippedCount = array_sum($skipped);
         $reasons = collect($skipped)->filter()->map(fn (int $count, string $reason): string => "{$count} {$reason}")->implode(', ');
 
