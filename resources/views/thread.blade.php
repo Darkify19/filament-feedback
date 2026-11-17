@@ -69,6 +69,7 @@
             :name="$post->authorName()"
             :time="$post->created_at"
             :body="$post->body"
+            :screenshots="$post->screenshotUrls()"
             :reactable="$post"
             :viewer="$viewer"
         />

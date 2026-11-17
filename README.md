@@ -28,6 +28,7 @@ sets a status. A board shows the mood for each module, so you can see how a rele
   typing `#DTR` (or `#BreakRoom`, `#dtr`, …) in the message tags one with autocomplete.
 - Module chips use your app's own navigation icons.
 - Reactions (Thanks, Same here, Seen, Fixed) and a "Did this fix it?" check once a post is Done.
+- Screenshots on a post (`screenshots()`), private to the author and the team.
 - Replies send on Enter (Shift+Enter for a new line), and can be unsent (`allowUnsend()`).
 - Stats on the inbox: posts, median first-reply time, what got done, and mood against the
   30 days before.
@@ -110,6 +111,7 @@ A one-panel app keeps both on (the default) and only sets `canTriage()`.
 | `chatWebhook(?string)` | none | A Google Chat space webhook. Each new post sends it one line. |
 | `developerPosts(bool $enabled, bool\|Closure $canRead, ?string $chatWebhook)` | on, every triager reads | The "For the developers" box. `canRead` limits who sees those posts in the inbox; `chatWebhook` pings the dev team's own space. |
 | `allowUnsend(team: bool\|Closure, authors: bool\|Closure)` | team `true`, authors `false` | Who may unsend their own replies. An unsent reply stays as "… unsent a message". |
+| `screenshots(bool $enabled = true, ?string $disk = null)` | on, app's default disk | The Screenshots field in the sheet: up to 3 PNG, JPEG, WebP or GIF images, 5 MB each, stored privately under `feedback-screenshots/` and served only to the author and triagers who can read the post. Deleted with the post. |
 | `navigationGroup(?string)` | none | Where the inbox sits in the navigation. |
 
 Set it on the panel that has the button: posts are created there.

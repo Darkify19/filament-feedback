@@ -120,7 +120,7 @@ To keep editing the package live on a laptop, use a local `composer.json` overri
 
 | Item | Notes |
 |---|---|
-| Screenshot upload on a post | Filament FileUpload to the app's default disk, shown in the thread. Browser/screen context too |
+| Screenshot upload on a post | ✅ v0.6.0: `screenshots()`, private disk + auth route, thumbnails in both threads. Browser/screen context still ⬜ |
 | "Fixed in release X" | Link a Done post to a host changelog entry; board before/after a release |
 | Saved replies for triagers | Picked from a menu in the inbox reply box |
 | Rich text replies + @mentions for triagers | Copy Commentions' `SanitizeCommentHtml`, `ParseComment`, `suggestion.js` (MIT, keep notice) |
@@ -153,3 +153,4 @@ To keep editing the package live on a laptop, use a local `composer.json` overri
 | 2026-11-09 | Repo created. v0.1 core built, tests green on 3.3.57, 4.16.2 and 5.11.2. Wired into UPLB-TKS (path repo) in place of its "Chat with us" popup. |
 | 2026-11-10 | Run skill (Testbench dev host + Playwright driver). Redesign: quick sheet + My feedback page, nav icons, reactions, timeline, fix check, anime.js. Pushed to GitHub, tagged v0.1.0; TKS composer moved to the tag. Then v0.2.0: compact module picker + `#Module` mentions; v0.2.1 picker polish; v0.3.0: Enter to send, unsend, stats widget (filament-insights can place it); v0.4.0: "For the developers", kind boxes, mood scale, phone sheet. v0.4.1: the reactions migration broke TKS deploys on MySQL (key too long, then half-applied); made re-runnable, unique index dropped. |
 | 2026-11-11 | v0.5.4: the sidebar menu and the page get room at the bottom while the button shows, so it never sits on a last nav item or a form's Save. TKS dropped its "clear the sidebar" offset and shows an icon-only button in the collapsed rail. |
+| 2026-11-11 | v0.6.0: screenshots on a post (up to 3 images, private, served through a per-panel auth route to the author and triagers; SVG refused; tampered paths dropped; files deleted with the post). |

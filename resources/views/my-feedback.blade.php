@@ -79,6 +79,7 @@
                             name="You"
                             :time="$thread->created_at"
                             :body="$thread->body"
+                            :screenshots="$thread->screenshotUrls()"
                             :reactable="$thread"
                             :viewer="$viewer"
                         />

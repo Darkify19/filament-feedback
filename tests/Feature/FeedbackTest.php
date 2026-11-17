@@ -10,6 +10,8 @@ use CarlJanzell\FilamentFeedback\Pages\FeedbackInbox;
 use CarlJanzell\FilamentFeedback\Pages\MyFeedback;
 use CarlJanzell\FilamentFeedback\Support\GoogleChatPing;
 use CarlJanzell\FilamentFeedback\Widgets\FeedbackStats;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 it('saves a post with its modules, mood and the page it came from', function (): void {
@@ -338,4 +340,43 @@ it('hides the button behind a closure, e.g. while impersonating, and refuses pos
         ->assertForbidden();
 
     expect(FeedbackPost::count())->toBe(0);
+});
+
+it('attaches screenshots privately, for the author and the team only, and drops paths it did not upload', function (): void {
+    Storage::fake('local');
+    Storage::disk('local')->put('secret.txt', 'not yours');
+    $ana = signIn(person());
+
+    Livewire::test(FeedbackLauncher::class, ['panel' => 'testing'])
+        ->callAction('feedback', data: [
+            'kind' => 'problem',
+            'body' => 'The DTR page cuts off.',
+            'screenshots' => [UploadedFile::fake()->image('dtr.png')],
+        ])
+        ->assertHasNoActionErrors();
+
+    $post = FeedbackPost::sole();
+    $path = $post->screenshots[0]['path'];
+    Storage::disk('local')->assertExists($path);
+    expect($post->screenshots)->toHaveCount(1)
+        ->and($path)->toStartWith('feedback-screenshots/');
+
+    // A tampered state naming another file is ignored.
+    $launcher = new FeedbackLauncher;
+    $launcher->panel = 'testing';
+    expect((fn () => $this->screenshots(['secret.txt', 'feedback-screenshots/../secret.txt', $path]))->call($launcher))
+        ->toBe([['disk' => 'local', 'path' => $path]]);
+
+    $url = "/testing/feedback-screenshots/{$post->getKey()}/0";
+    $this->get($url)->assertOk();
+
+    signIn(person('Cy'));
+    $this->get($url)->assertForbidden();
+
+    signIn(person('Hr', admin: true));
+    $this->get($url)->assertOk();
+    $this->get("/testing/feedback-screenshots/{$post->getKey()}/1")->assertNotFound();
+
+    $post->delete();
+    Storage::disk('local')->assertMissing($path);
 });

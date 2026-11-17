@@ -1,4 +1,4 @@
-@props(['name', 'time', 'body', 'team' => false, 'reactable' => null, 'viewer' => null, 'canUnsend' => false])
+@props(['name', 'time', 'body', 'team' => false, 'reactable' => null, 'viewer' => null, 'canUnsend' => false, 'screenshots' => []])
 
 @php
     use CarlJanzell\FilamentFeedback\Models\FeedbackPost;
@@ -49,6 +49,16 @@
         </div>
     @else
         <div class="ffb-message-body">{!! nl2br($html) !!}</div>
+    @endif
+
+    @if ($screenshots)
+        <div class="ffb-shots">
+            @foreach ($screenshots as $url)
+                <a href="{{ $url }}" target="_blank" rel="noopener" class="ffb-shot" title="Open full size">
+                    <img src="{{ $url }}" alt="Screenshot {{ $loop->iteration }}" loading="lazy" />
+                </a>
+            @endforeach
+        </div>
     @endif
 
     @if ($reactable && ($canReact || collect($summary)->sum('count') > 0))

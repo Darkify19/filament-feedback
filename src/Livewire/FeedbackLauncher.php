@@ -13,6 +13,7 @@ use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ViewField;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -32,6 +33,8 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
 {
     use InteractsWithActions;
     use InteractsWithForms;
+
+    public const SCREENSHOT_DIRECTORY = 'feedback-screenshots';
 
     #[Locked]
     public string $panel;
@@ -72,6 +75,7 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
                 'modules' => array_filter([$this->plugin()->resolveModule($this->route, $this->pageUrl)]),
                 'mood' => null,
                 'body' => null,
+                'screenshots' => [],
             ])
             ->form(fn (): array => $this->formComponents())
             ->modalContent(fn (): ?View => ($unread = $this->unreadCount()) > 0
@@ -130,11 +134,24 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
                 ->rows(4)
                 ->maxLength(5000)
                 ->required(),
+            FileUpload::make('screenshots')
+                ->label('Screenshots')
+                ->helperText('Optional. Up to 3 images. Only you and the team see them.')
+                ->multiple()
+                ->maxFiles(3)
+                ->maxSize(5120)
+                // No SVG: it can carry script, and the route serves files inline from the app's origin.
+                ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
+                ->disk($this->plugin()->getScreenshotDisk())
+                ->directory(static::SCREENSHOT_DIRECTORY)
+                ->visibility('private')
+                ->panelLayout('grid')
+                ->visible($this->plugin()->hasScreenshots()),
         ];
     }
 
     /**
-     * @param  array{kind: FeedbackKind|string, modules?: list<string>|null, mood?: FeedbackMood|int|string|null, body: string}  $data
+     * @param  array{kind: FeedbackKind|string, modules?: list<string>|null, mood?: FeedbackMood|int|string|null, body: string, screenshots?: list<string>|null}  $data
      */
     public function createPost(array $data): void
     {
@@ -160,6 +177,7 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
                 'user_agent' => request()->userAgent(),
                 'app_version' => config('app.version'),
             ]),
+            'screenshots' => $plugin->hasScreenshots() ? $this->screenshots($data['screenshots'] ?? null) : null,
             'author_seen_at' => now(),
         ]);
         $post->author()->associate($this->user());
@@ -179,6 +197,26 @@ class FeedbackLauncher extends Component implements HasActions, HasForms
             ->success()
             ->actions($url ? [Compat::notificationAction('follow')->label('Follow it in My feedback')->url($url)] : [])
             ->send();
+    }
+
+    /**
+     * Paths the upload just stored. A tampered request can put any string in the field's state,
+     * and Filament passes strings through as already-stored files, so only names the upload
+     * itself would write are kept: otherwise the screenshot route could serve other files.
+     *
+     * @return list<array{disk: string, path: string}>|null
+     */
+    protected function screenshots(mixed $paths): ?array
+    {
+        $disk = $this->plugin()->getScreenshotDisk();
+        $pattern = '#^'.preg_quote(static::SCREENSHOT_DIRECTORY, '#').'/[\w-]+\.(png|jpe?g|webp|gif)$#i';
+
+        return collect((array) $paths)
+            ->filter(fn (mixed $path): bool => is_string($path) && preg_match($pattern, $path) === 1)
+            ->take(3)
+            ->map(fn (string $path): array => ['disk' => $disk, 'path' => $path])
+            ->values()
+            ->all() ?: null;
     }
 
     /**

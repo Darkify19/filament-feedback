@@ -4,6 +4,7 @@ namespace CarlJanzell\FilamentFeedback;
 
 use BackedEnum;
 use CarlJanzell\FilamentFeedback\Enums\FeedbackKind;
+use CarlJanzell\FilamentFeedback\Http\ShowScreenshot;
 use CarlJanzell\FilamentFeedback\Pages\FeedbackInbox;
 use CarlJanzell\FilamentFeedback\Pages\MyFeedback;
 use Closure;
@@ -70,6 +71,10 @@ class FilamentFeedbackPlugin implements Plugin
 
     protected ?string $developerChatWebhook = null;
 
+    protected bool $hasScreenshots = true;
+
+    protected ?string $screenshotDisk = null;
+
     public static function make(): static
     {
         return app(static::class);
@@ -100,6 +105,11 @@ class FilamentFeedbackPlugin implements Plugin
         if ($this->hasButton()) {
             $panel->pages([MyFeedback::class]);
         }
+
+        // Screenshots are private: both sides read them through this route on their own panel.
+        $panel->authenticatedRoutes(fn () => Route::get('feedback-screenshots/{post}/{index}', ShowScreenshot::class)
+            ->whereNumber('index')
+            ->name('feedback.screenshot'));
 
         if ($this->hasButton()) {
             $panel->renderHook('panels::body.end', fn (): string => Filament::auth()->check() && $this->showsButton()
@@ -437,6 +447,29 @@ class FilamentFeedbackPlugin implements Plugin
         return $this->canReadDeveloperPosts === null
             ? $this->isTriager()
             : (bool) $this->evaluate($this->canReadDeveloperPosts);
+    }
+
+    /**
+     * The "Screenshots" field in the sheet: up to 3 images, 5 MB each, saved privately on
+     * `$disk` (the app's default disk unless given) and shown in the thread to the author and
+     * the team only. Turn it off with `screenshots(false)`.
+     */
+    public function screenshots(bool $enabled = true, ?string $disk = null): static
+    {
+        $this->hasScreenshots = $enabled;
+        $this->screenshotDisk = $disk;
+
+        return $this;
+    }
+
+    public function hasScreenshots(): bool
+    {
+        return $this->hasScreenshots;
+    }
+
+    public function getScreenshotDisk(): string
+    {
+        return $this->screenshotDisk ?? config('filesystems.default');
     }
 
     /**

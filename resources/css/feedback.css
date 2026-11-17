@@ -951,3 +951,31 @@ body:has(.ffb-launcher) .fi-main {
         height: 1.375rem;
     }
 }
+
+/* Screenshots attached to a post: thumbnails that open full size. */
+.ffb-shots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.ffb-shot {
+    display: block;
+    width: 6rem;
+    height: 4.5rem;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.ffb-shot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ffb-shot:hover,
+.ffb-shot:focus-visible {
+    border-color: var(--ffb-accent);
+}

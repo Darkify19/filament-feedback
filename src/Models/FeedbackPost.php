@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
@@ -26,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $author_seen_at
  * @property list<array{status: string, at: string}>|null $status_log
  * @property bool|null $fix_confirmed
+ * @property list<array{disk: string, path: string}>|null $screenshots
  * @property Carbon $created_at
  */
 class FeedbackPost extends Model
@@ -49,6 +51,7 @@ class FeedbackPost extends Model
         'author_seen_at' => 'datetime',
         'status_log' => 'array',
         'fix_confirmed' => 'boolean',
+        'screenshots' => 'array',
     ];
 
     protected static function booted(): void
@@ -64,6 +67,32 @@ class FeedbackPost extends Model
                 $post->status_log = [...($post->status_log ?? []), ['status' => $post->status->value, 'at' => now()->toIso8601String()]];
             }
         });
+
+        // Screenshots can show personal records: they go with the post.
+        static::deleted(function (FeedbackPost $post): void {
+            foreach ($post->screenshots ?? [] as $screenshot) {
+                Storage::disk($screenshot['disk'])->delete($screenshot['path']);
+            }
+        });
+    }
+
+    /**
+     * Links to this post's screenshots on the current panel, served by its private route.
+     *
+     * @return list<string>
+     */
+    public function screenshotUrls(): array
+    {
+        $panel = Filament::getCurrentPanel();
+
+        if (! $panel?->hasPlugin('feedback')) {
+            return [];
+        }
+
+        return array_map(
+            fn (int $index): string => route("filament.{$panel->getId()}.feedback.screenshot", ['post' => $this->getKey(), 'index' => $index]),
+            array_keys($this->screenshots ?? []),
+        );
     }
 
     /**
